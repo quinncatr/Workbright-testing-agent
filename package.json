@@ -1,0 +1,23 @@
+{
+  "name": "workbright-testing-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quinncatr/workbright-testing-agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/quinncatr/workbright-testing-agent/issues"
+  },
+  "homepage": "https://github.com/quinncatr/workbright-testing-agent#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.2",
+    "dotenv": "^17.4.2"
+  }
+}
