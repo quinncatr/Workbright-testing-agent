@@ -16,3 +16,9 @@
 4. Run:
 
    npx playwright test tests/simple I-9 path.spec.ts --headed
+
+```
+npx playwright test tests/i9-stage1.spec.ts            --project=chromium --workers=1
+npx playwright test tests/i9-documents.spec.ts         --project=chromium --workers=1
+npx playwright test tests/i9-signature-preparer.spec.ts --project=chromium --workers=1
+```
