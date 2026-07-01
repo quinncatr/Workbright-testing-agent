@@ -72,9 +72,22 @@ export async function selectCitizenship(
   }
 }
 
-export async function gotoDocuments(page: Page): Promise<void> {
+export async function goDocumentsPage(page: Page): Promise<void> {
   await clickNext(page);
   await expectStep(page, STEP.documents);
+}
+
+// Negative-path helper: click Next on Section 1 and assert it was REJECTED — the
+// wizard stays on Citizenship (never reaches Choose Your Documentation) and, when
+// given, the expected validation message is shown.
+export async function expectSection1Rejected(page: Page, errorText?: string): Promise<void> {
+  await clickNext(page);
+  await page.waitForTimeout(2000);
+  await expect(page.getByRole('heading', { name: STEP.documents, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: STEP.citizenship, exact: true }).first()).toBeVisible();
+  if (errorText) {
+    await expect(page.getByText(errorText, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
+  }
 }
 
 // ---- Stage 2/3: document selection ----------------------------------------
@@ -292,7 +305,7 @@ export async function fillFormForDocs(
 ): Promise<void> {
   await startI9(page);
   await selectCitizenship(page, citizenship, opts.alienOption ?? 'arn');
-  await gotoDocuments(page);
+  await goDocumentsPage(page);
 
   const usingListA = docs[0].list === 'A';
   if (!usingListA) await openListsBC(page);
