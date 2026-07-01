@@ -19,6 +19,7 @@
 
 ```
 npx playwright test tests/i9-stage1.spec.ts            --project=chromium --workers=1
+npx playwright test tests/i9-stage1-negative.spec.ts   --project=chromium --workers=1
 npx playwright test tests/i9-documents.spec.ts         --project=chromium --workers=1
 npx playwright test tests/i9-signature-preparer.spec.ts --project=chromium --workers=1
 ```
