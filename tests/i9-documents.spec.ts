@@ -2,12 +2,7 @@ import { test } from '@playwright/test';
 import { fillFormForDocs, expectSubmittable } from '../helpers/i9-flow';
 import { LIST_A, LIST_B, LIST_C, PARTNER_B, PARTNER_C, firstCitizenship } from '../helpers/i9-data';
 
-// Every submittable document. Each test drives the full employee form using the
-// document (List A alone, or List B/C paired) and asserts the wizard reaches the
-// signature step — i.e. all document validation passed and the I-9 is submittable.
-// It deliberately stops short of Finish so the run doesn't complete dozens of I-9s.
-//
-// Run: npx playwright test tests/i9-documents.spec.ts --project=chromium --workers=1
+// Every submittable document for List A and List B/C pairs
 
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');

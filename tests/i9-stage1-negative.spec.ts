@@ -21,7 +21,7 @@ async function alienStep(page: import('@playwright/test').Page) {
   await page.waitForTimeout(800);
 }
 
-test('USCIS Number too short is rejected', async ({ page }) => {
+test('USCIS Number thats too short is rejected', async ({ page }) => {
   await alienStep(page);
   await page.locator(ARN_TYPE).selectOption('uscis');
   await page.locator(ARN).fill('12345');
@@ -29,7 +29,7 @@ test('USCIS Number too short is rejected', async ({ page }) => {
   await expectSection1Rejected(page, 'USCIS Number must contain 9 digits');
 });
 
-test('Work-authorization expiration date must be valid', async ({ page }) => {
+test('Work-authorization expiration date must be a valid date', async ({ page }) => {
   await alienStep(page);
   await page.locator(ARN_TYPE).selectOption('uscis');
   await page.locator(ARN).fill('123456789');
@@ -37,25 +37,25 @@ test('Work-authorization expiration date must be valid', async ({ page }) => {
   await expectSection1Rejected(page, 'valid date or N/A');
 });
 
-test('An identifier option is required, none is rejected', async ({ page }) => {
+test('An identifier option is required, if none are chosen, it is rejected', async ({ page }) => {
   await alienStep(page);
   await page.locator(EXP).fill('12/31/2030');
   await expectSection1Rejected(page, 'Choose one of the 3 options');
 });
 
-test('I-94 Admission Number must be 11 characters, wrong length is rejected', async ({ page }) => {
+test('I-94 Admission Number must be 11 characters, given the wrong length, it is rejected', async ({ page }) => {
   await alienStep(page);
   await page.locator(I94).fill('123');
   await page.locator(EXP).fill('12/31/2030');
   await expectSection1Rejected(page, 'must be exactly 11 characters');
 });
 
-test('Citizenship designation is required, selecting none is rejected', async ({ page }) => {
+test('Citizenship designation is required, if selecting none, it is rejected', async ({ page }) => {
   await startI9(page); 
   await expectSection1Rejected(page);
 });
 
-test('Possible Error: an already-expired expiration date is accepted', async ({ page }) => {
+test('Possible Bug: an expired expiration date is accepted', async ({ page }) => {
   await alienStep(page);
   await page.locator(ARN_TYPE).selectOption('uscis');
   await page.locator(ARN).fill('123456789');
@@ -63,6 +63,6 @@ test('Possible Error: an already-expired expiration date is accepted', async ({ 
   await clickNext(page);
   await expect(
     page.getByRole('heading', { name: 'Choose Your Documentation', exact: true }),
-    'app currently accepts a past expiration date and advances',
+    'the app currently accepts an expiration date in the past',
   ).toBeVisible({ timeout: 30_000 });
 });

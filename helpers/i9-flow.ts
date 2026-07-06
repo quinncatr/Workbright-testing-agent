@@ -8,7 +8,7 @@ export { signIn, beginI9Resubmission, clickNext };
 const IMG = path.resolve(process.cwd(), 'data', 'IMG_5733.jpg');
 const SLOW = 30_000;
 
-// ---- step synchronization --------------------------------------------------
+//step synchronization
 const STEP = {
   citizenship: 'Citizenship',
   documents: 'Choose Your Documentation',
@@ -25,34 +25,31 @@ async function onStep(page: Page, name: string): Promise<boolean> {
   return page.getByRole('heading', { name, exact: true }).first().isVisible().catch(() => false);
 }
 
-// ---- entry -----------------------------------------------------------------
-// Sign in, start a resubmission, and advance past the (prefilled) personal-info
-// step so the wizard is sitting on the Citizenship step.
+//Sign in, start resubmission, and go past the autofilled personal info
 export async function startI9(page: Page): Promise<void> {
   await signIn(page);
   const origin = new URL(process.env.URL ?? '').origin;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       await beginI9Resubmission(page);
-      await clickNext(page);          // personal info -> citizenship
+      await clickNext(page);        
       await expectStep(page, STEP.citizenship);
       return;
     } catch (err) {
       if (attempt === 3) throw err;
-      await page.goto(`${origin}/`);  // recover from a transient post-submit 404
+      await page.goto(`${origin}/`);  //recover from a old 404
       await page.waitForTimeout(2500);
     }
   }
 }
 
-// ---- Stage 1: citizenship --------------------------------------------------
 export async function selectCitizenship(
   page: Page,
   citizenship: Citizenship,
   alienOption: AlienOption = 'arn',
 ): Promise<void> {
   await page.locator(`input[name="i9_submission[citizenship_designation]"][value="${citizenship}"]`).check();
-  await page.waitForTimeout(800); // citizenship-specific region renders
+  await page.waitForTimeout(800); 
 
   if (citizenship === 'permanent_resident') {
     await page.locator('input[name="i9_submission[alien_reg_number]"]').fill('123456789');
@@ -66,7 +63,7 @@ export async function selectCitizenship(
     } else {
       await page.locator('input[name="i9_submission[foreign_passport_number]"]').fill('ABC123456789');
       const country = page.locator('select[name="i9_submission[country_of_issuance]"]');
-      await country.selectOption({ index: 1 }); // first real country (index 0 is the placeholder)
+      await country.selectOption({ index: 1 }); //the first real country as index 0 is a placeholder
     }
     await page.locator('input[name="i9_submission[alien_exp_date]"]').fill('12/31/2030');
   }
@@ -77,9 +74,7 @@ export async function goDocumentsPage(page: Page): Promise<void> {
   await expectStep(page, STEP.documents);
 }
 
-// Negative-path helper: click Next on Section 1 and assert it was REJECTED — the
-// wizard stays on Citizenship (never reaches Choose Your Documentation) and, when
-// given, the expected validation message is shown.
+//Negative path helper
 export async function expectSection1Rejected(page: Page, errorText?: string): Promise<void> {
   await clickNext(page);
   await page.waitForTimeout(2000);
@@ -90,7 +85,7 @@ export async function expectSection1Rejected(page: Page, errorText?: string): Pr
   }
 }
 
-// ---- Stage 2/3: document selection ----------------------------------------
+//Document selection
 export async function openListsBC(page: Page): Promise<void> {
   await page.locator('#documentation-lists-nav a').filter({ hasText: 'Lists B' }).first().click();
   await page.waitForTimeout(600);
@@ -109,23 +104,17 @@ export async function gotoUpload(page: Page): Promise<void> {
   await expectStep(page, STEP.upload);
 }
 
-// ---- attachment upload pages ----------------------------------------------
-// Strict control locator: only real form controls, never a label/wrapper that
-// happens to carry the same name attribute.
+//Only press real form controls, not a label/wrapper that is similar 
 function control(page: Page, name: string): Locator {
   return page.locator(`input[name="${name}"], select[name="${name}"], textarea[name="${name}"]`).first();
 }
 
-// Several fields (foreign-passport country issuing-authority, SSN-card issuing
-// authority, preparer State) are vue-multiselects (div.wb-multiselect with a
-// role=option list), not native controls. Open it and pick the first valid option
-// — works regardless of whether the list is countries, agencies, or states.
+//Some fields are multiselects, open them and pick the first valid option
 async function selectWbMultiselect(page: Page, name: string): Promise<boolean> {
   const ms = page.locator(`.wb-multiselect[name="${name}"]`).first();
   if (!(await ms.count())) return false;
   const inner = ms.locator('.multiselect');
-  // Some are locked/prefilled (e.g. FSM/RMI passports auto-set their country) and
-  // render as multiselect--disabled — nothing to pick, treat as handled.
+  //Some are locked/prefilled, therefore nothing to pick, treat as handled
   const disabled = await inner.evaluate((el) => el.classList.contains('multiselect--disabled')).catch(() => false);
   if (disabled) return true;
   await inner.click();
@@ -148,12 +137,10 @@ async function selectValue(field: Locator, predicate: (v: string) => boolean): P
   return null;
 }
 
-// Fill one attachment page. Adapts to the document: prefilled/disabled fields are
-// left alone, selects get a valid option, optional docs (an "N/A" title) skip uploads.
+//Fill one attachment page
 export async function fillAttachment(page: Page, sampleNumber: string): Promise<void> {
   let optionalSkip = false;
 
-  // 1) Document Title — detect optional (N/A) selects first.
   const title = control(page, 'document_title');
   if (await title.count()) {
     const tag = await title.evaluate((e) => e.tagName.toLowerCase());
@@ -166,17 +153,14 @@ export async function fillAttachment(page: Page, sampleNumber: string): Promise<
     }
   }
 
-  if (optionalSkip) return; // N/A optional doc: fields are disabled, no upload needed.
+  if (optionalSkip) return; 
 
-  // 2) Files — front always; back only if a back slot is rendered.
   const files = page.locator('input[type="file"]');
   await files.nth(0).setInputFiles(IMG);
   const hasBack = (await page.locator('label:has-text("Document Back")').count()) > 0;
   if (hasBack && (await files.count()) > 1) await files.nth(1).setInputFiles(IMG);
   await expect(page.getByRole('button', { name: /Remove/ })).toHaveCount(hasBack ? 2 : 1, { timeout: SLOW });
 
-  // 3) Issuing Authority — country multiselect (foreign passports), native select
-  //    (prefilled options), or an empty editable text field.
   if (!(await selectWbMultiselect(page, 'issuing_authority'))) {
     const ia = control(page, 'issuing_authority');
     if (await ia.count()) {
@@ -189,20 +173,17 @@ export async function fillAttachment(page: Page, sampleNumber: string): Promise<
     }
   }
 
-  // 4) Document Number — only if present, enabled, and empty.
   const num = page.locator('input[name="document_number"]').first();
   if ((await num.count()) && (await num.isEnabled()) && !(await num.inputValue())) {
     await num.fill(sampleNumber || 'TEST12345');
   }
 
-  // 5) Expiration Date — typeable; only if enabled (no-expiry docs are disabled).
   const exp = page.locator('input[name="expiration_date"]').first();
   if ((await exp.count()) && (await exp.isEnabled()) && !(await exp.inputValue())) {
     await exp.fill('12/31/2030');
   }
 }
 
-// Walk every attachment page (single docs = 1 page; foreign passports + I-94 = several).
 export async function fillAllAttachments(page: Page, numbers: string[] = []): Promise<void> {
   for (let i = 0, guard = 0; guard < 8; guard++) {
     if (!(await onStep(page, STEP.upload))) break;
@@ -213,7 +194,7 @@ export async function fillAllAttachments(page: Page, numbers: string[] = []): Pr
   }
 }
 
-// ---- Supplement A: preparer/translator ------------------------------------
+//Preparer/translator helpers
 export async function setPreparer(page: Page, include: boolean): Promise<void> {
   await expectStep(page, STEP.preparer);
   const id = include ? '#showPreparerForm-true' : '#showPreparerForm-false';
@@ -226,12 +207,69 @@ export async function setPreparer(page: Page, include: boolean): Promise<void> {
     await form.locator('[name="last_name"]').fill('Preparer');
     await form.locator('[name="address"]').fill('123 Main St');
     await form.locator('[name="city"]').fill('Springfield');
-    await selectWbMultiselect(page, 'state'); // State is a vue-multiselect
+    await selectWbMultiselect(page, 'state'); //State is a vue-multiselect
     await form.locator('[name="zip"]').fill('90210');
     await form.locator('[name="supplement_a_signature_name"]').fill('Pat Preparer');
     await page.waitForTimeout(300);
+    await drawSignature(page, page.locator('canvas').first()); //preparer signature pad
+    await page.waitForTimeout(300);
+  }
+}
+
+export interface PreparerFillOpts {
+  text?: boolean;      //First/Last name, Address, City, Zip etc...
+  state?: boolean;     
+  name?: boolean;      
+  signature?: boolean; 
+}
+
+//Begins Preparer Form
+export async function fillPreparerYes(page: Page, opts: PreparerFillOpts = {}): Promise<void> {
+  const { text = true, state = true, name = true, signature = true } = opts;
+  await expectStep(page, STEP.preparer);
+  await page.locator('#showPreparerForm-true').check({ force: true });
+  await page.waitForTimeout(800);
+
+  const form = page.locator('form#supplement-a');
+  if (text) {
+    await form.locator('[name="first_name"]').fill('Pat');
+    await form.locator('[name="last_name"]').fill('Preparer');
+    await form.locator('[name="address"]').fill('123 Main St');
+    await form.locator('[name="city"]').fill('Springfield');
+    await form.locator('[name="zip"]').fill('90210');
+  }
+  if (state) await selectWbMultiselect(page, 'state'); // State is a vue-multiselect
+  if (name) await form.locator('[name="supplement_a_signature_name"]').fill('Pat Preparer');
+  if (signature) {
+    await page.waitForTimeout(300);
     await drawSignature(page, page.locator('canvas').first()); // preparer signature pad
     await page.waitForTimeout(300);
+  }
+}
+
+//Reach the Preparer/Translator with the simplest valid path.
+export async function goToPreparerStep(
+  page: Page,
+  citizenship: Citizenship = 'citizen',
+  docKey = 'us_passport',
+): Promise<void> {
+  await startI9(page);
+  await selectCitizenship(page, citizenship);
+  await goDocumentsPage(page);
+  await selectDoc(page, docKey);
+  await gotoUpload(page);
+  await fillAllAttachments(page, ['123456789']);
+  await expectStep(page, STEP.preparer);
+}
+
+//Assert Preparer next step was rejected
+export async function expectPreparerRejected(page: Page, errorText = 'This field is required'): Promise<void> {
+  await clickNext(page);
+  await page.waitForTimeout(2000);
+  await expect(page.getByRole('heading', { name: STEP.signature, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: STEP.preparer, exact: true }).first()).toBeVisible();
+  if (errorText) {
+    await expect(page.getByText(errorText, { exact: false }).first()).toBeVisible({ timeout: 10_000 });
   }
 }
 
@@ -240,10 +278,7 @@ export async function gotoSignature(page: Page): Promise<void> {
   await expectStep(page, STEP.signature);
 }
 
-// ---- Signature -------------------------------------------------------------
-// Signature pads only register strokes from TRUSTED events, so draw with the real
-// Playwright mouse. The canvas must be scrolled into view first or the coordinates
-// land off-screen and nothing is drawn.
+//Must draw with the real Playwright mouse, with canvas scrolled into view 
 export async function drawSignature(page: Page, canvas: Locator): Promise<void> {
   await canvas.waitFor({ state: 'visible' });
   await canvas.scrollIntoViewIfNeeded();
@@ -267,24 +302,19 @@ export async function signEmployee(page: Page): Promise<void> {
   await drawSignature(page, page.locator('canvas').first());
 }
 
-// Assert the wizard reached the signature step — i.e. the whole employee form
-// validated and the I-9 is submittable — WITHOUT actually submitting.
+//Run reached the signature step, WITHOUT actually submitting.
 export async function expectSubmittable(page: Page): Promise<void> {
   await expectStep(page, STEP.signature);
   await expect(page.getByRole('button', { name: 'Finish' })).toBeVisible();
 }
 
-// Sign and submit; assert the wizard completes (navigates away from the form).
+//Assert run completes
 export async function finishWithSignature(page: Page): Promise<void> {
   await signEmployee(page);
   await page.getByRole('button', { name: 'Finish' }).click();
   await expect(page).not.toHaveURL(/submission\/new/, { timeout: SLOW });
 }
 
-// Click Finish with NO signature; assert the I-9 is NOT completed. A successful
-// completion redirects away from the wizard URL, so staying on `submission/new`
-// proves submission was blocked. When the app renders the graceful validation
-// (rather than its occasional post-state 404), also confirm the signature message.
 export async function expectSignatureRequired(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Finish' }).click();
   await page.waitForTimeout(2500);
@@ -293,10 +323,7 @@ export async function expectSignatureRequired(page: Page): Promise<void> {
   if (await msg.count()) await expect(msg).toBeVisible();
 }
 
-// ---- high-level path runner ------------------------------------------------
-// Drive a complete employee form for one document selection and stop at the
-// signature step (proves the path is submittable). Handles List A vs B+C and
-// the alien Section-1 requirements.
+//Run through a complete employee form for one document selection and stop at the signature step
 export async function fillFormForDocs(
   page: Page,
   citizenship: Citizenship,
@@ -312,7 +339,6 @@ export async function fillFormForDocs(
   for (const d of docs) await selectDoc(page, d.key);
 
   await gotoUpload(page);
-  // numbers across attachment pages: primary doc's numbers, then partner doc's.
   const numbers = docs.flatMap((d) => d.numbers ?? []);
   await fillAllAttachments(page, numbers);
 
