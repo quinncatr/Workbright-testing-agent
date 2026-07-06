@@ -1,8 +1,5 @@
-// Stage 1 coverage for the I-9 citizenship flow.
-// These tests verify that each supported citizenship/status branch can be selected
-// and successfully reaches the document selection page. They intentionally stop
-// before document upload/submission; document-specific coverage is handled by
-// later List A and List B + C tests.
+// Section coverage the I-9 form
+// Tests each supported citizenship/status branch
 
 import { test } from '@playwright/test';
 import { startI9, selectCitizenship, goDocumentsPage } from '../helpers/i9-flow';

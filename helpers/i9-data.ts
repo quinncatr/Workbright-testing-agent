@@ -1,10 +1,6 @@
-// I-9 branch matrix data, derived from the Rails source (config/locales/app/i9.en.yml)
-// and verified against the QA DOM via the discovery specs.
-//
-// Each citizenship enables a different subset of documents. Document numbers are
-// sample values that satisfy the per-document input masks (see document_number_formats
-// in i9.en.yml). For multi-attachment documents (those with `additional_docs`), `numbers`
-// lists one value per attachment page in the order they are presented.
+// I-9 branch matrix data
+// Each citizenship enables a different subset of documents. 
+// For multi-attachment documents, it lists one value per attachment page in the order they are shown.
 
 export type Citizenship = 'citizen' | 'noncitizen_national' | 'permanent_resident' | 'alien';
 export type ListKey = 'A' | 'B' | 'C';
@@ -20,14 +16,14 @@ export const CITIZENSHIP_LABELS: Record<Citizenship, string> = {
 export interface DocSpec {
   key: string;                 // data-key on the .document-option link
   list: ListKey;
-  title: string;               // list_title (for labels only; selection is by data-key)
-  citizenships: Citizenship[]; // citizenships for which this doc is selectable
-  numbers?: string[];          // sample doc number(s), one per attachment page
-  multi?: boolean;             // has additional_docs -> multiple upload pages
-  requiresArn?: boolean;       // alien must supply an Alien Reg Number in Section 1 (I-766)
+  title: string;               // list_title 
+  citizenships: Citizenship[]; // citizenships that this doc is selectable for
+  numbers?: string[];          // sample doc number
+  multi?: boolean;             // has additional docs 
+  requiresArn?: boolean;       // alien must provide an Alien Reg Number in Section 1 
 }
 
-// ---- List A (identity + work authorization in one document) ----------------
+//List A 
 export const LIST_A: DocSpec[] = [
   { key: 'us_passport', list: 'A', title: 'U.S. Passport', citizenships: ['citizen', 'noncitizen_national'], numbers: ['123456789'] },
   { key: 'us_passport_card', list: 'A', title: 'U.S. Passport Card', citizenships: ['citizen', 'noncitizen_national'], numbers: ['123456789'] },
@@ -42,7 +38,7 @@ export const LIST_A: DocSpec[] = [
   { key: 'other_acceptable_receipt', list: 'A', title: 'Other Acceptable Receipt', citizenships: ['permanent_resident', 'alien'], numbers: [] },
 ];
 
-// ---- List B (identity) — every List B doc is valid for all citizenships -----
+//List B 
 const ALL: Citizenship[] = ['citizen', 'noncitizen_national', 'permanent_resident', 'alien'];
 export const LIST_B: DocSpec[] = [
   { key: 'drivers_license', list: 'B', title: "Driver's license (State/territory)", citizenships: ALL, numbers: ['D1234567'] },
@@ -61,7 +57,7 @@ export const LIST_B: DocSpec[] = [
   { key: 'under18_daycare_record', list: 'B', title: 'Day-care/nursery record (<18)', citizenships: ALL, numbers: ['DAY12345'] },
 ];
 
-// ---- List C (work authorization) -------------------------------------------
+//List C 
 const CIT_NONCIT: Citizenship[] = ['citizen', 'noncitizen_national'];
 export const LIST_C: DocSpec[] = [
   { key: 'ssn_card', list: 'C', title: 'Social Security Card', citizenships: ALL, numbers: ['123-45-6789'] },
@@ -77,12 +73,11 @@ export const LIST_C: DocSpec[] = [
 
 export const ALL_DOCS: DocSpec[] = [...LIST_A, ...LIST_B, ...LIST_C];
 
-// Stable partner documents (valid for every citizenship) used to satisfy the
-// "one List B AND one List C" requirement when exercising the other list.
-export const PARTNER_B: DocSpec = LIST_B[0]; // drivers_license
-export const PARTNER_C: DocSpec = LIST_C[0]; // ssn_card
+//Valid B + C for each Citizenship
+export const PARTNER_B: DocSpec = LIST_B[0]; 
+export const PARTNER_C: DocSpec = LIST_C[0];
 
-// First citizenship a document is valid for — used to pick a concrete path.
+//First citizenship a document is valid when used to pick a concrete path
 export function firstCitizenship(doc: DocSpec): Citizenship {
   return doc.citizenships[0];
 }
