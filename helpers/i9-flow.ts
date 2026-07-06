@@ -28,7 +28,7 @@ async function onStep(page: Page, name: string): Promise<boolean> {
 //Sign in, start resubmission, and go past the autofilled personal info
 export async function startI9(page: Page): Promise<void> {
   await signIn(page);
-  const origin = new URL(process.env.URL ?? '').origin;
+  const origin = `https://${process.env.DOMAIN}/`;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       await beginI9Resubmission(page);
@@ -37,7 +37,7 @@ export async function startI9(page: Page): Promise<void> {
       return;
     } catch (err) {
       if (attempt === 3) throw err;
-      await page.goto(`${origin}/`);  //recover from a old 404
+      await page.goto(origin);  //recover from a old 404
       await page.waitForTimeout(2500);
     }
   }
