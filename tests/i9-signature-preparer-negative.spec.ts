@@ -32,3 +32,10 @@ test('Preparer without the name/address text fields is rejected', async ({ page 
   await fillPreparerYes(page, { text: false });
   await expectPreparerRejected(page, 'This field is required');
 });
+
+test('Preparer middle initial longer than one letter is rejected', async ({ page }) => {
+  await goToPreparerStep(page);
+  await fillPreparerYes(page); 
+  await page.locator('form#supplement-a [name="middle_initial"]').fill('AB'); 
+  await expectPreparerRejected(page, 'Only 1 letter allowed');
+});
