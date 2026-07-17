@@ -9,7 +9,7 @@ test.beforeEach(({}, testInfo) => {
 });
 test.setTimeout(120_000);
 
-test.describe('List A — single document (identity + work authorization)', () => {
+test.describe('List A Document: ', () => {
   for (const doc of LIST_A) {
     test(`List A: ${doc.key}`, async ({ page }) => {
       await fillFormForDocs(page, firstCitizenship(doc), [doc], { alienOption: 'arn' });
@@ -18,7 +18,7 @@ test.describe('List A — single document (identity + work authorization)', () =
   }
 });
 
-test.describe('List B — identity document, paired with a List C (SSN card)', () => {
+test.describe('List B Document: ', () => {
   for (const doc of LIST_B) {
     test(`List B: ${doc.key} + ${PARTNER_C.key}`, async ({ page }) => {
       await fillFormForDocs(page, 'citizen', [doc, PARTNER_C]);
@@ -27,7 +27,7 @@ test.describe('List B — identity document, paired with a List C (SSN card)', (
   }
 });
 
-test.describe("List C — work-authorization document, paired with a List B (driver's license)", () => {
+test.describe("List C Document: ", () => {
   for (const doc of LIST_C) {
     test(`List C: ${PARTNER_B.key} + ${doc.key}`, async ({ page }) => {
       await fillFormForDocs(page, 'citizen', [PARTNER_B, doc]);
