@@ -28,7 +28,7 @@ async function onStep(page: Page, name: string): Promise<boolean> {
 //Sign in, start resubmission, and go past the autofilled personal info
 export async function startI9(page: Page): Promise<void> {
   await signIn(page);
-  const origin = `https://${process.env.DOMAIN}/`;
+  const origin = new URL(process.env.DOMAIN ?? '').origin; // recovery target = scheme+host of DOMAIN
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       await beginI9Resubmission(page);
