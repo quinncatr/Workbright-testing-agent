@@ -2,12 +2,12 @@ import { expect, type Page } from '@playwright/test';
 import path from 'node:path';
 
 export async function signIn(page: Page): Promise<void> {
-  const url = `https://${process.env.DOMAIN}/users/sign_in`;
+  const url = process.env.DOMAIN;
   const email = process.env.EMAIL;
   const password = process.env.PASSWORD;
 
   if (!url || !email || !password) {
-    throw new Error('Missing URL, EMAIL, or PASSWORD');
+    throw new Error('Missing DOMAIN, EMAIL, or PASSWORD');
   }
 
   await page.goto(url);

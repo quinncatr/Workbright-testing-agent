@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { startI9, clickNext, expectSection1Rejected } from '../helpers/i9-flow';
 
 // Section 1 error cases: 
-// Run: npx playwright test tests/i9-stage1-negative.spec.ts --project=chromium --workers=1
+// Run: npx playwright test tests/i9-stage1-negative.spec.ts --project=chromium --workers=1 --headed
 
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
