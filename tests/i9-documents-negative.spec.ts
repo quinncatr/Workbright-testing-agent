@@ -3,7 +3,7 @@ import path from 'node:path';
 import { startI9, selectCitizenship, goDocumentsPage, openListsBC, selectDoc, gotoUpload, clickNext } from '../helpers/i9-flow';
 
 // Documentation Upload Negative cases
-// Run: npx playwright test tests/i9-documents-negative.spec.ts --project=chromium --workers=1
+// Run: npx playwright test tests/i9-documents-negative.spec.ts --project=chromium --workers=1 --headed
 
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
