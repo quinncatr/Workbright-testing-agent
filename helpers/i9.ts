@@ -1,16 +1,23 @@
 import { expect, type Page } from '@playwright/test';
 import path from 'node:path';
 
+//Normalize DOMAIN into a scheme+host origin
+export function siteOrigin(): string {
+  const raw = process.env.DOMAIN;
+  if (!raw) throw new Error('Missing DOMAIN');
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return new URL(withScheme).origin;
+}
+
 export async function signIn(page: Page): Promise<void> {
-  const url = `https://${process.env.DOMAIN}/users/sign_in`;
   const email = process.env.EMAIL;
   const password = process.env.PASSWORD;
 
-  if (!url || !email || !password) {
+  if (!process.env.DOMAIN || !email || !password) {
     throw new Error('Missing DOMAIN, EMAIL, or PASSWORD');
   }
 
-  await page.goto(url);
+  await page.goto(`${siteOrigin()}/users/sign_in`);
 
   await page.getByRole('textbox', { name: 'Email' }).fill(email);
   await page.getByRole('textbox', { name: 'Password' }).fill(password);
