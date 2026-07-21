@@ -34,6 +34,16 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /*
+     * Secret header that a Cloudflare WAF "Skip" custom rule matches to bypass
+     * the managed challenge / bot check for our own test traffic. Applied to
+     * every request, including the initial document navigation. The value lives
+     * only in .env (local) and the CF_BYPASS_TOKEN GitHub secret (CI).
+     */
+    extraHTTPHeaders: process.env.CF_BYPASS_TOKEN
+      ? { 'X-WB-Test-Bypass': process.env.CF_BYPASS_TOKEN }
+      : {},
   },
 
   /* Configure projects for major browsers */
