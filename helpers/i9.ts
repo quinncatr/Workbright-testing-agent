@@ -2,7 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import path from 'node:path';
 
 export async function signIn(page: Page): Promise<void> {
-  const url = process.env.DOMAIN;
+  const url = `https://${process.env.DOMAIN}/users/sign_in`;
   const email = process.env.EMAIL;
   const password = process.env.PASSWORD;
 
