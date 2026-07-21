@@ -1,6 +1,6 @@
 import { expect, type Page, type Locator } from '@playwright/test';
 import path from 'node:path';
-import { signIn, beginI9Resubmission, clickNext } from './i9';
+import { signIn, beginI9Resubmission, clickNext, siteOrigin } from './i9';
 import type { Citizenship, AlienOption, DocSpec } from './i9-data';
 
 export { signIn, beginI9Resubmission, clickNext };
@@ -28,7 +28,7 @@ async function onStep(page: Page, name: string): Promise<boolean> {
 //Sign in, start resubmission, and go past the autofilled personal info
 export async function startI9(page: Page): Promise<void> {
   await signIn(page);
-  const origin = new URL(process.env.DOMAIN ?? '').origin; // recovery target = scheme+host of DOMAIN
+  const origin = siteOrigin(); // recovery target = scheme+host of DOMAIN
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       await beginI9Resubmission(page);
