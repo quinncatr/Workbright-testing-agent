@@ -4,8 +4,8 @@ import {
   expectSubmittable,
   finishWithSignature,
   expectSignatureRequired,
-} from '../helpers/i9-flow';
-import { LIST_A } from '../helpers/i9-data';
+} from '@/helpers/i9-flow';
+import { LIST_A } from '@/helpers/i9-data';
 
 // Signature and the Preparer/Translator branch
 

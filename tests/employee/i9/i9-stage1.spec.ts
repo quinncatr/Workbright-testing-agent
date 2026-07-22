@@ -2,8 +2,8 @@
 // Tests each supported citizenship/status branch
 
 import { test } from '@playwright/test';
-import { startI9, selectCitizenship, goDocumentsPage } from '../helpers/i9-flow';
-import type { AlienOption, Citizenship } from '../helpers/i9-data';
+import { startI9, selectCitizenship, goDocumentsPage } from '@/helpers/i9-flow';
+import type { AlienOption, Citizenship } from '@/helpers/i9-data';
 
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
