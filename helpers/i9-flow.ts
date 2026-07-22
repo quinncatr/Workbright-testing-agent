@@ -1,7 +1,7 @@
 import { expect, type Page, type Locator } from '@playwright/test';
 import path from 'node:path';
-import { signIn, beginI9Resubmission, clickNext, siteOrigin } from './i9';
-import type { Citizenship, AlienOption, DocSpec } from './i9-data';
+import { signIn, beginI9Resubmission, clickNext, siteOrigin } from '@/helpers/i9';
+import type { Citizenship, AlienOption, DocSpec } from '@/helpers/i9-data';
 
 export { signIn, beginI9Resubmission, clickNext };
 

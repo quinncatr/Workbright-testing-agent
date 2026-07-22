@@ -8,7 +8,7 @@ import {
   signForm,
   signIn,
   uploadPassportImages,
-} from '../helpers/i9';
+} from '@/helpers/i9';
 
 test.describe.configure({ mode: 'serial' });
 

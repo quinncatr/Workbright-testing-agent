@@ -1,6 +1,6 @@
 import { test } from '@playwright/test';
-import { fillFormForDocs, expectSubmittable } from '../helpers/i9-flow';
-import { LIST_A, LIST_B, LIST_C, PARTNER_B, PARTNER_C, firstCitizenship } from '../helpers/i9-data';
+import { fillFormForDocs, expectSubmittable } from '@/helpers/i9-flow';
+import { LIST_A, LIST_B, LIST_C, PARTNER_B, PARTNER_C, firstCitizenship } from '@/helpers/i9-data';
 
 // Every submittable document for List A and List B/C pairs
 

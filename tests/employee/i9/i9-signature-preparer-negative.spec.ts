@@ -1,5 +1,5 @@
 import { test } from '@playwright/test';
-import { goToPreparerStep, fillPreparerYes, expectPreparerRejected } from '../helpers/i9-flow';
+import { goToPreparerStep, fillPreparerYes, expectPreparerRejected } from '@/helpers/i9-flow';
 
 // Preparer/Translator error cases: 
 // Run: npx playwright test tests/i9-signature-preparer-negative.spec.ts --project=chromium --workers=1 --headed
