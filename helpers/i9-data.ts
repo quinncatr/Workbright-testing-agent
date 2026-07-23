@@ -31,7 +31,7 @@ export const LIST_A: DocSpec[] = [
   { key: 'alien_registration_receipt_card', list: 'A', title: 'Alien Registration Receipt Card (Form I-551)', citizenships: ['permanent_resident'], numbers: ['ABC1234567890'] },
   { key: 'foreign_passport', list: 'A', title: 'Foreign passport containing temporary I-551 stamp', citizenships: ['permanent_resident'], multi: true, numbers: ['ABC123456789', 'STAMP1234'] },
   { key: 'foreign_passport_mriv', list: 'A', title: 'Foreign passport w/ I-551 MRIV notation', citizenships: ['permanent_resident'], multi: true, numbers: ['ABC123456789', 'MRIV12345'] },
-  { key: 'employment_auth_doc', list: 'A', title: 'Employment Authorization Document (Form I-766)', citizenships: ['alien'], numbers: ['ABC1234567890'], requiresArn: true },
+  { key: 'employment_auth_doc', list: 'A', title: 'Employment Authorization Document w/ photograph (Form I-766)', citizenships: ['alien'], numbers: ['ABC1234567890'], requiresArn: true },
   { key: 'foreign_passport_with_i94', list: 'A', title: 'Foreign passport and Form I-94', citizenships: ['alien'], multi: true, numbers: ['ABC123456789', '123456789A1'] },
   { key: 'fsm_passport_with_i94', list: 'A', title: 'FSM passport with Form I-94', citizenships: ['alien'], multi: true, numbers: ['ABC123456789', '123456789A1'] },
   { key: 'rmi_passport_with_i94', list: 'A', title: 'RMI passport with Form I-94', citizenships: ['alien'], multi: true, numbers: ['ABC123456789', '123456789A1'] },
@@ -80,4 +80,29 @@ export const PARTNER_C: DocSpec = LIST_C[0];
 //First citizenship a document is valid when used to pick a concrete path
 export function firstCitizenship(doc: DocSpec): Citizenship {
   return doc.citizenships[0];
+}
+
+// ---- USCIS ineligibility matrix --------------------------------------------
+// For each citizenship, the document keys that must NOT be selectable. Derived
+// from ALL_DOCS by inverting each DocSpec.citizenships list. Materialized so
+// tests can iterate without recomputing.
+const ALL_CITIZENSHIPS: Citizenship[] = ['citizen', 'noncitizen_national', 'permanent_resident', 'alien'];
+
+function buildIneligibleDocs(): Record<Citizenship, string[]> {
+  const out: Record<Citizenship, string[]> = {
+    citizen: [], noncitizen_national: [], permanent_resident: [], alien: [],
+  };
+  for (const c of ALL_CITIZENSHIPS) {
+    for (const doc of ALL_DOCS) {
+      if (!doc.citizenships.includes(c)) out[c].push(doc.key);
+    }
+  }
+  return out;
+}
+
+export const INELIGIBLE_DOCS: Record<Citizenship, string[]> = buildIneligibleDocs();
+
+// Lookup a doc by key. Returns undefined if the key isn't in ALL_DOCS.
+export function findDoc(key: string): DocSpec | undefined {
+  return ALL_DOCS.find((d) => d.key === key);
 }
