@@ -1,0 +1,47 @@
+# QA regression manifest — master index, tracked by Asana task GID.
+# Every task from the QA section of "Engineering Lifecycle" (project 1212777014402169) gets an
+# entry: either a Playwright spec (gate: visible-change) or a recorded skip (gate: skipped).
+# The agent only acts on tasks whose change is user-observable in the browser on the QA env.
+# Updated by the /qa-gen skill (.claude/skills/qa-gen/SKILL.md). Rails-App is never modified.
+tasks:
+  "1214649321828179":
+    name: "Bugfix: Trim special whitespace from selected attributes"
+    asana_url: "https://app.asana.com/1/1110661684743291/project/1212777014402169/task/1214649321828179"
+    gate: visible-change
+    spec: tests/name-whitespace-normalization.spec.ts
+    run: "npx playwright test tests/name-whitespace-normalization.spec.ts --project=chromium --workers=1"
+    generated_on: 2026-07-21
+    status: green
+    verified_on: 2026-07-22
+    notes: >-
+      Profile name fields wrapped in NBSP/en-space + zero-width chars must persist trimmed;
+      internal space preserved (AC scope: ends only). Spec passed against QA on 2026-07-22 —
+      the fix (replacement of the attribute_normalizer gem) is deployed there, even though the
+      Asana Dev Stage still reads "Dev In Progress".
+
+  "1216798217670813":
+    name: "Test Agent: Trim special whitespace from selected attributes"
+    asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216798217670813"
+    board: "I9 End to End Testing (1215576041936942), yellow 'Test' tag sweep"
+    gate: visible-change
+    spec: tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
+    run: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1"
+    generated_on: 2026-07-22
+    status: green
+    verified_on: 2026-07-22
+    notes: >-
+      Same AC as 1214649321828179, but this spec covers the FULL AC: both junk classes
+      (Unicode spaces incl. em space, and invisible chars) at BOTH ends of first/middle/last
+      name, plus a dedicated test that an internal word joiner is preserved (AC scope: ends
+      only). 2/2 passed on QA. Supersedes the coverage of
+      tests/name-whitespace-normalization.spec.ts; the older spec can be retired after review.
+
+  "1216116434404783":
+    name: "Full Service: Update All Nudger Copy"
+    asana_url: "https://app.asana.com/1/1110661684743291/project/1212777014402169/task/1216116434404783"
+    gate: skipped
+    reason: >-
+      Email/SMS copy only — no user-observable change in the QA site UI, and the QA env has no
+      outbound email/SMS capture to assert against. Verified once against the merged PR diff
+      (https://github.com/WorkBright/Rails-App/pull/4746): PASS, 8/8 notifiers on both channels.
+    skipped_on: 2026-07-22
