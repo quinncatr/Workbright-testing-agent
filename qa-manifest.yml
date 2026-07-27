@@ -45,3 +45,27 @@ tasks:
       outbound email/SMS capture to assert against. Verified once against the merged PR diff
       (https://github.com/WorkBright/Rails-App/pull/4746): PASS, 8/8 notifiers on both channels.
     skipped_on: 2026-07-22
+
+  "1216925412790266":
+    name: "I-9: Fix v8 2026 PDF dropping accented letters"
+    asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216925412790266"
+    board: "I9 End to End Testing (1215576041936942), yellow 'Test' tag sweep"
+    gate: visible-change
+    spec: tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
+    run: "npx playwright test tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts --project=chromium --workers=1"
+    generated_on: 2026-07-27
+    status: green
+    verified_on: 2026-07-27
+    notes: >-
+      AC scope acted on: accented names must render correctly on the flattened I-9 PDF (the
+      other AC items — regression test/rake task in Rails-App, golden-PDF fixture in CI, W-4/W-9
+      template audit, re-generation of already-rendered PDFs — have no UI surface on this
+      account and are not asserted here). The shared QA account's profile first name is
+      genuinely accented ("Óscar"), so the spec completes a real I-9 resubmission (citizen /
+      U.S. Passport), downloads the resulting flattened PDF via the submission page's
+      "Download PDF" link (/api/submissions/<id>/file?download=1), and asserts the extracted
+      PDF text contains "Óscar" intact rather than dropped to "scar". Passed on first run against
+      QA on 2026-07-27 — the fix is already deployed there even though the task's Dev Stage may
+      not yet read "Ready to Release". Each run creates one new I-9 resubmission on the shared
+      account (expected/idempotent, consistent with other I-9 specs in this repo).
+
