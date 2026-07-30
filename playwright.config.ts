@@ -17,8 +17,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /*
+   * Single worker everywhere, not just CI: the suite drives one shared QA account, and
+   * with mobile projects enabled a bare `npx playwright test` now matches multiple
+   * projects. One worker keeps those runs sequential so they never collide on the account.
+   */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['list'],
@@ -60,15 +64,19 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
 
-    /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
+    /*
+     * Mobile emulation projects (isMobile + hasTouch + device viewport/UA). Specs opt in
+     * via limitToSupportedProjects() in helpers/projects.ts. Run one explicitly with e.g.
+     * `npx playwright test --project=mobile-chrome --workers=1`.
+     */
+    {
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'mobile-safari',
+      use: { ...devices['iPhone 15'] },
+    },
 
     /* Test against branded browsers. */
     // {

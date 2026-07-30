@@ -10,6 +10,7 @@
 // Run: npx playwright test tests/i9-document-eligibility.spec.ts --project=chromium --workers=1
 
 import { test } from '@playwright/test';
+import { limitToSupportedProjects } from '@/helpers/projects';
 import {
   startI9,
   selectCitizenship,
@@ -22,9 +23,7 @@ import {
 import { expectDocNotSelectable, expectAttachmentRejected } from '@/helpers/i9-negative';
 import { INELIGIBLE_DOCS, findDoc, type Citizenship } from '@/helpers/i9-data';
 
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
-});
+limitToSupportedProjects();
 test.setTimeout(120_000);
 
 const CITIZENSHIPS: Citizenship[] = ['alien'];
