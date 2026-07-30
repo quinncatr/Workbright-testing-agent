@@ -2,12 +2,11 @@
 // Tests each supported citizenship/status branch
 
 import { test } from '@playwright/test';
+import { limitToSupportedProjects } from '@/helpers/projects';
 import { startI9, selectCitizenship, goDocumentsPage } from '@/helpers/i9-flow';
 import type { AlienOption, Citizenship } from '@/helpers/i9-data';
 
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
-});
+limitToSupportedProjects();
 test.setTimeout(90_000);
 
 const CITIZENSHIP_OPTIONS: Citizenship[] = ['citizen', 'noncitizen_national', 'permanent_resident'];

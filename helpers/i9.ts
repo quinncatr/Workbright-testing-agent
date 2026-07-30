@@ -68,17 +68,23 @@ export async function uploadPassportImages(page: Page): Promise<void> {
 export async function enterPassportDetails(page: Page): Promise<void> {
   await page.getByRole('textbox', { name: '* Document Number' }).fill('111111111');
 
-  await page.locator('input[name="expiration_date"]').click();
-
-  await page.getByRole('button', { name: '30', exact: true }).click();
+  // Fill a fixed future date directly (same as fillAttachment in i9-flow.ts). The old
+  // datepicker flow clicked day "30" of the current month, which the app rejects as
+  // "must be after today" whenever the 30th is not in the future.
+  await page.locator('input[name="expiration_date"]').fill('12/31/2030');
 }
 
 export async function signForm(page: Page): Promise<void> {
-  await page.locator('canvas').click({
-    position: {
-      x: 511,
-      y: 78,
-    },
-  });
+  // Draw a stroke relative to the canvas size. The old fixed position (x: 511) falls
+  // outside the canvas on mobile viewports, where the pad is narrower than 511px.
+  const canvas = page.locator('canvas');
+  await canvas.waitFor({ state: 'visible' });
+  await canvas.scrollIntoViewIfNeeded();
+  const b = await canvas.boundingBox();
+  if (!b) throw new Error('signature canvas not found / not visible');
+  await page.mouse.move(b.x + b.width * 0.25, b.y + b.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * 0.75, b.y + b.height * 0.6, { steps: 10 });
+  await page.mouse.up();
 }
 

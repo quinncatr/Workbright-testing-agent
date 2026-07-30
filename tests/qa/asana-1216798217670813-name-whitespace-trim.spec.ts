@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { signIn } from '../../helpers/i9-flow';
+import { limitToSupportedProjects } from '../../helpers/projects';
 
 // Asana 1216798217670813 — "Test Agent: Trim special whitespace from selected attributes"
 // https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216798217670813
@@ -15,9 +16,7 @@ import { signIn } from '../../helpers/i9-flow';
 //
 // Run: npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1
 
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'single QA account; chromium only');
-});
+limitToSupportedProjects();
 test.setTimeout(90_000);
 
 const FIRST = '#employee_profile_first_name';

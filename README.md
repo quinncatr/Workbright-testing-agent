@@ -42,3 +42,8 @@
    ```
 
 The agent applies the visible change to each uncovered task (see `.claude/skills/qa-gen/SKILL.md`), writes specs to `tests/qa/asana-<gid>-<slug>.spec.ts`, runs them against QA, and updates `qa-manifest.yml`. 
+   - `npx playwright test` — all supported projects (desktop + mobile, sequential)
+   - `npm run test:desktop` — desktop Chrome only
+   - `npm run test:mobile` — mobile emulation (Pixel 7 Chrome + iPhone 15 Safari)
+
+

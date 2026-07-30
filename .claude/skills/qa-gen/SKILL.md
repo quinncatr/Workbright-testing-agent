@@ -30,20 +30,35 @@ discovery against QA is preferred. Reference spec:
    admin-internal tooling the test account can't reach, or copy that never renders in the app.
    When skipping, report the reason to the user — a recorded skip is a complete, correct outcome.
 
-4. **Plan the verification like a QA engineer.** From the acceptance criteria, define: the
-   route/flow that reaches the change, the action that exercises it, and the literal expected
-   outcome. Prefer asserting persisted state after a reload over transient UI feedback.
+4. **Plan the verification like a QA engineer.** Start from the knowledge base:
+   `agent-docs/navigation.md` (where the feature lives), the relevant
+   `agent-docs/patterns/` file (how to drive it, with runnable helpers), and
+   `agent-docs/fragile-spots.md` (known traps). Check `agent-docs/expected-noise.md`
+   before treating a console error as a finding. Then, from the acceptance criteria,
+   define: the route/flow that reaches the change, the action that exercises it, and the
+   literal expected outcome. Prefer asserting persisted state after a reload over
+   transient UI feedback.
 
 5. **Ground selectors in the real DOM.** Sign in to the QA env (creds in `.env`: `DOMAIN`,
    `EMAIL`, `PASSWORD`) and inspect the actual pages before writing selectors — via the
    in-app browser, or `npx playwright codegen`, or a throwaway spec run. Do not invent
    selectors from imagination. Rails-App views/JS may be read to confirm names and IDs.
+   The QA env is responsive: if the change touches layout or navigation, also check the
+   page at a mobile viewport (e.g. `npx playwright codegen --device="Pixel 7"`) — controls
+   can move into collapsed menus or render as different elements on small screens.
 
 6. **Write the spec**: `tests/qa/asana-<gid>-<slug>.spec.ts`.
    - Header comment: Asana URL + GID + task name, the acceptance criteria being verified, and
-     the run command.
-   - Reuse `helpers/` (`signIn` in `i9-flow.ts`, etc.). Chromium only, `--workers=1` (single
-     shared QA account) — guard with a `test.skip` on other projects like the reference spec.
+     the run commands (desktop and mobile).
+   - Reuse `helpers/` (`signIn` in `i9-flow.ts`, etc.). Guard the spec by calling
+     `limitToSupportedProjects()` from `helpers/projects.ts` at the top — this allows
+     `chromium`, `mobile-chrome` (Pixel 7), and `mobile-safari` (iPhone 15) and skips
+     everything else. Always pass `--workers=1` (single shared QA account); the config also
+     pins `workers: 1` so multi-project runs stay sequential.
+   - Prefer selectors that hold on both desktop and mobile layouts (roles, names, ids over
+     position-dependent locators). If a step genuinely cannot work on mobile (e.g. a
+     desktop-only admin screen), add a targeted `test.skip` for the mobile projects with the
+     reason — do not silently drop mobile.
    - Assert the approved behavior **literally** (exact values/copy), not loose matchers.
    - Leave the shared account the way you found it (restore any data the test changed).
    - If the fix is not yet deployed to QA (Dev Stage before "Ready to Release"), the spec is
@@ -51,13 +66,25 @@ discovery against QA is preferred. Reference spec:
      manifest instead of weakening assertions.
 
 7. **Update `qa-manifest.yml`**: GID, name, Asana URL, `gate:`, `spec:`, `run:`,
-   `generated_on:`, `status:`, `notes:`.
+   `run_mobile:`, `generated_on:`, `status:` (per project if they differ), `notes:`.
 
-8. **Run the spec** (`npx playwright test <spec> --project=chromium --workers=1`) and report
-   the result honestly: green = change verified on QA; red on an undeployed fix = expected;
-   red on a deployed fix = QA failure, flag it. If QA is unreachable, say so — never claim a
-   result you didn't observe.
+8. **Run the spec** on desktop and mobile:
+   `npx playwright test <spec> --project=chromium --workers=1`, then
+   `npx playwright test <spec> --project=mobile-chrome --project=mobile-safari --workers=1`.
+   Report each result honestly: green = change verified on QA; red on an undeployed fix =
+   expected; red on a deployed fix = QA failure, flag it. A mobile-only failure is a real
+   finding — record it in the manifest, don't loosen the spec to hide it. If QA is
+   unreachable, say so — never claim a result you didn't observe. When the run is the
+   basis for a sign-off (marking the manifest verified/green on a deployed fix, or posting
+   results to Asana), produce the tier-2 audit trail from `agent-docs/evidence.md`: rerun
+   the passing spec with `--trace on` and write the step-by-step walkthrough.
 
 9. **Report.** Gate decision, what the spec drives and asserts, run output, manifest entry.
    Offer (do not do automatically): commit on branch `qa/asana-<gid>`, post results to the
    Asana task.
+
+10. **Write back what you learned** (required close-out, per CLAUDE.md): new tricky
+    interactions to the right `agent-docs/patterns/` file (as runnable code or a pointer
+    to code), new confusing failures to `agent-docs/fragile-spots.md` with today's date,
+    new harmless console errors to `agent-docs/expected-noise.md` with today's date, and
+    new routes to `agent-docs/navigation.md`. Update or delete entries the task disproved.

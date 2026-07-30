@@ -9,6 +9,9 @@ import {
   signIn,
   uploadPassportImages,
 } from '@/helpers/i9';
+import { limitToSupportedProjects } from '@/helpers/projects';
+
+limitToSupportedProjects();
 
 test.describe.configure({ mode: 'serial' });
 

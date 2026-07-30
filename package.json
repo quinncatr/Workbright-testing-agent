@@ -5,6 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
+    "test:desktop": "npx playwright test --project=chromium",
+    "test:mobile": "npx playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:mobile-chrome": "npx playwright test --project=mobile-chrome",
+    "test:mobile-safari": "npx playwright test --project=mobile-safari",
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
     "test:report": "npx playwright show-report"

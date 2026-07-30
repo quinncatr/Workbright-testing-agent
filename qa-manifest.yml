@@ -3,6 +3,9 @@
 # entry: either a Playwright spec (gate: visible-change) or a recorded skip (gate: skipped).
 # The agent only acts on tasks whose change is user-observable in the browser on the QA env.
 # Updated by the /qa-gen skill (.claude/skills/qa-gen/SKILL.md). Rails-App is never modified.
+# Specs run on desktop (chromium) and mobile emulation (mobile-chrome = Pixel 7,
+# mobile-safari = iPhone 15); entries record run/status per surface via run_mobile,
+# mobile_status, and mobile_verified_on.
 tasks:
   "1214649321828179":
     name: "Bugfix: Trim special whitespace from selected attributes"
@@ -26,9 +29,12 @@ tasks:
     gate: visible-change
     spec: tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
     run: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1"
+    run_mobile: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=mobile-chrome --project=mobile-safari --workers=1"
     generated_on: 2026-07-22
     status: green
     verified_on: 2026-07-22
+    mobile_status: green
+    mobile_verified_on: 2026-07-30
     notes: >-
       Same AC as 1214649321828179, but this spec covers the FULL AC: both junk classes
       (Unicode spaces incl. em space, and invisible chars) at BOTH ends of first/middle/last
