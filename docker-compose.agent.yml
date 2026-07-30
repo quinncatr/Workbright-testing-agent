@@ -1,0 +1,23 @@
+# Containerized QA agent. See README "Containerized agent" section.
+#
+#   docker compose -f docker-compose.agent.yml build
+#   docker compose -f docker-compose.agent.yml run --rm qa-agent --check
+#   docker compose -f docker-compose.agent.yml run --rm qa-agent            # sweep
+#   docker compose -f docker-compose.agent.yml run --rm qa-agent <asana-gid>
+services:
+  qa-agent:
+    build:
+      context: agent
+    env_file: .env
+    environment:
+      QA_PROJECT_GID: ${QA_PROJECT_GID:-1212777014402169}
+      QA_SECTION_NAME: ${QA_SECTION_NAME:-QA}
+      QA_TAG_NAME: ${QA_TAG_NAME:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-}
+    volumes:
+      - .:/work
+      # container-side node_modules: the host copy may be built for Windows/macOS
+      - qa_agent_node_modules:/work/node_modules
+
+volumes:
+  qa_agent_node_modules:
