@@ -1,12 +1,11 @@
 import { test } from '@playwright/test';
+import { limitToSupportedProjects } from '@/helpers/projects';
 import { fillFormForDocs, expectSubmittable } from '@/helpers/i9-flow';
 import { LIST_A, LIST_B, LIST_C, PARTNER_B, PARTNER_C, firstCitizenship } from '@/helpers/i9-data';
 
 // Every submittable document for List A and List B/C pairs
 
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
-});
+limitToSupportedProjects();
 test.setTimeout(120_000);
 
 test.describe('List A Document: ', () => {

@@ -1,4 +1,5 @@
 import { test } from '@playwright/test';
+import { limitToSupportedProjects } from '@/helpers/projects';
 import {
   fillFormForDocs,
   expectSubmittable,
@@ -9,9 +10,7 @@ import { LIST_A } from '@/helpers/i9-data';
 
 // Signature and the Preparer/Translator branch
 
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
-});
+limitToSupportedProjects();
 test.setTimeout(120_000);
 
 const PASSPORT = LIST_A[0]; 

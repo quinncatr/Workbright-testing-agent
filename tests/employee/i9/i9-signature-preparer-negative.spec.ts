@@ -1,12 +1,11 @@
 import { test } from '@playwright/test';
+import { limitToSupportedProjects } from '@/helpers/projects';
 import { goToPreparerStep, fillPreparerYes, expectPreparerRejected } from '@/helpers/i9-flow';
 
 // Preparer/Translator error cases: 
 // Run: npx playwright test tests/i9-signature-preparer-negative.spec.ts --project=chromium --workers=1 --headed
 
-test.beforeEach(({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'chromium', 'I-9 suite uses a single QA account; chromium only');
-});
+limitToSupportedProjects();
 test.setTimeout(120_000);
 
 test('Preparer with an empty form is rejected', async ({ page }) => {
