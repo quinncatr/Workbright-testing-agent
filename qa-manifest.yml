@@ -7,71 +7,57 @@
 # mobile-safari = iPhone 15); entries record run/status per surface via run_mobile,
 # mobile_status, and mobile_verified_on.
 tasks:
-  "1214649321828179":
-    name: "Bugfix: Trim special whitespace from selected attributes"
-    asana_url: "https://app.asana.com/1/1110661684743291/project/1212777014402169/task/1214649321828179"
-    gate: visible-change
-    spec: tests/name-whitespace-normalization.spec.ts
-    run: "npx playwright test tests/name-whitespace-normalization.spec.ts --project=chromium --workers=1"
-    generated_on: 2026-07-21
-    status: green
-    verified_on: 2026-07-22
-    notes: >-
-      Profile name fields wrapped in NBSP/en-space + zero-width chars must persist trimmed;
-      internal space preserved (AC scope: ends only). Spec passed against QA on 2026-07-22 —
-      the fix (replacement of the attribute_normalizer gem) is deployed there, even though the
-      Asana Dev Stage still reads "Dev In Progress".
-
   "1216798217670813":
     name: "Test Agent: Trim special whitespace from selected attributes"
     asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216798217670813"
-    board: "I9 End to End Testing (1215576041936942), yellow 'Test' tag sweep"
+    board: "I9 End to End Testing (1215576041936942), 'Test' tag sweep"
     gate: visible-change
     spec: tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
     run: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1"
     run_mobile: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=mobile-chrome --project=mobile-safari --workers=1"
-    generated_on: 2026-07-22
+    generated_on: 2026-07-30
     status: green
-    verified_on: 2026-07-22
+    verified_on: 2026-07-30
     mobile_status: green
     mobile_verified_on: 2026-07-30
     notes: >-
-      Same AC as 1214649321828179, but this spec covers the FULL AC: both junk classes
-      (Unicode spaces incl. em space, and invisible chars) at BOTH ends of first/middle/last
-      name, plus a dedicated test that an internal word joiner is preserved (AC scope: ends
-      only). 2/2 passed on QA. Supersedes the coverage of
-      tests/name-whitespace-normalization.spec.ts; the older spec can be retired after review.
-
-  "1216116434404783":
-    name: "Full Service: Update All Nudger Copy"
-    asana_url: "https://app.asana.com/1/1110661684743291/project/1212777014402169/task/1216116434404783"
-    gate: skipped
-    reason: >-
-      Email/SMS copy only — no user-observable change in the QA site UI, and the QA env has no
-      outbound email/SMS capture to assert against. Verified once against the merged PR diff
-      (https://github.com/WorkBright/Rails-App/pull/4746): PASS, 8/8 notifiers on both channels.
-    skipped_on: 2026-07-22
+      AC scope: names normalized by trimming leading/trailing Unicode whitespace (NBSP, em
+      space) and invisible characters (zero-width space, word joiner, BOM) from the
+      first/middle/last name fields on the profile page; internal characters (a planted word
+      joiner) are intentionally preserved per the AC's stated "ends only" scope. Spec edits
+      the shared account's profile fields, saves, reloads, and asserts trimmed/preserved
+      values, then restores the original values (captured at test start) in a finally block.
+      Passed on chromium, mobile-chrome, and mobile-safari on first run.
 
   "1216925412790266":
     name: "I-9: Fix v8 2026 PDF dropping accented letters"
     asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216925412790266"
-    board: "I9 End to End Testing (1215576041936942), yellow 'Test' tag sweep"
+    board: "I9 End to End Testing (1215576041936942), 'Test' tag sweep"
     gate: visible-change
     spec: tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
     run: "npx playwright test tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts --project=chromium --workers=1"
-    generated_on: 2026-07-27
+    run_mobile: "npx playwright test tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts --project=mobile-chrome --project=mobile-safari --workers=1"
+    generated_on: 2026-07-30
     status: green
-    verified_on: 2026-07-27
+    verified_on: 2026-07-30
+    mobile_status: green
+    mobile_verified_on: 2026-07-30
     notes: >-
       AC scope acted on: accented names must render correctly on the flattened I-9 PDF (the
       other AC items — regression test/rake task in Rails-App, golden-PDF fixture in CI, W-4/W-9
       template audit, re-generation of already-rendered PDFs — have no UI surface on this
-      account and are not asserted here). The shared QA account's profile first name is
-      genuinely accented ("Óscar"), so the spec completes a real I-9 resubmission (citizen /
-      U.S. Passport), downloads the resulting flattened PDF via the submission page's
-      "Download PDF" link (/api/submissions/<id>/file?download=1), and asserts the extracted
-      PDF text contains "Óscar" intact rather than dropped to "scar". Passed on first run against
-      QA on 2026-07-27 — the fix is already deployed there even though the task's Dev Stage may
-      not yet read "Ready to Release". Each run creates one new I-9 resubmission on the shared
-      account (expected/idempotent, consistent with other I-9 specs in this repo).
-
+      account and are not asserted here). The shared account's profile first name is not
+      accented by default, so the spec temporarily sets it to "Óscar", completes a real I-9
+      resubmission (citizen / U.S. Passport), downloads the resulting flattened PDF via the
+      submission page's "file" link (/api/submissions/<id>/file?download=1), asserts the
+      extracted PDF text (pdf-parse) contains "Óscar" intact and not dropped to bare "scar",
+      then restores the original profile first name in a finally block. Passed on first run on
+      chromium, mobile-chrome, and mobile-safari — each run creates one new I-9 resubmission on
+      the shared account (expected/idempotent, consistent with other I-9 specs in this repo).
+      Two harmless 422 responses to POST /i9_submission were observed mid-flow before the final
+      successful submission (looks like an autosave/partial-validation ping, not the real
+      Finish submit — did not block completion on any of the 3 runs). Also: helpers/i9.ts's
+      `signForm` did not reliably register a signature stroke in this container (confirmed via
+      screenshot — empty canvas, submission blocked on "Please sign this form"); this spec uses
+      `signEmployee`/`drawSignature` from helpers/i9-flow.ts instead, which worked on the first
+      try on all 3 projects. Worth a human look at whether `signForm` needs the same fix.

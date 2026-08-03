@@ -26,6 +26,15 @@ Starting a resubmission sometimes lands on an old 404. `startI9` (`helpers/i9-fl
 recovers by navigating back to the origin, waiting about 2.5 s, and retrying, up to 3
 attempts. Symptom: the Citizenship heading never appears right after entry.
 
+## 2026-07-30: single-sweep mouse stroke does not register on the signature pad
+In the containerized headless run, `signForm`'s stroke (one `mouse.move` with
+`steps: 10`) left the canvas empty and the submission blocked on "Please sign this
+form", confirmed via screenshot. The same flow worked on a Windows host. The pad needs
+many discrete pointer events: draw with a segmented stroke (a loop of ~20 short
+`mouse.move` calls), as `drawSignature` in `helpers/i9-flow.ts` does. `signForm` in
+`helpers/i9.ts` now uses the same segmented stroke. If a signature silently fails to
+register, check the stroke granularity first.
+
 ## 2026-07-30 (pre-existing): Cloudflare WAF challenge on QA
 The QA env is behind a Cloudflare managed challenge. Test traffic bypasses it with the
 `X-WB-Test-Bypass` header (value from `CF_BYPASS_TOKEN`), applied to every request in

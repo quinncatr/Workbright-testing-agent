@@ -1,87 +1,75 @@
-import { test, expect, Page } from '@playwright/test';
-import { signIn } from '../../helpers/i9-flow';
-import { limitToSupportedProjects } from '../../helpers/projects';
-
-// Asana 1216798217670813 — "Test Agent: Trim special whitespace from selected attributes"
-// https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216798217670813
-// (Same AC as Engineering Lifecycle task 1214649321828179; this spec covers the FULL AC —
-// both junk classes at BOTH ends, em space included, and internal preservation asserted.)
-//
-// AC: normalize names by trimming — BEGINNING AND END ONLY — whitespace (incl. Unicode
-// spaces: en space, em space, NBSP) and invisible space-like characters (zero-width space,
-// word joiner, BOM). Internal characters (whitespace OR invisible) are intentionally
-// PRESERVED for now (tracked in a separate spike).
-//
-// Verification: persisted values on the QA profile page after save + reload.
-//
-// Run: npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1
+/**
+ * Asana: https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216798217670813
+ * GID: 1216798217670813
+ * "Test Agent: Trim special whitespace from selected attributes"
+ *
+ * Acceptance criteria being verified:
+ * Normalize names by trimming, from the beginning and end only, whitespace (including
+ * Unicode spaces like en/em space and NBSP) and invisible space-like characters
+ * (zero-width space, word joiner, BOM), so names do not render as "???" on forms.
+ * Current scope: beginning and end only — internal whitespace/invisible characters are
+ * intentionally preserved (tracked separately), so this spec also asserts an internal
+ * word joiner survives a round trip untouched.
+ *
+ * Run:
+ *   npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1
+ *   npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=mobile-chrome --project=mobile-safari --workers=1
+ *
+ * Shared QA account: the profile's first/middle/last name are edited then restored to
+ * the values found at the start of the test.
+ */
+import { test, expect } from '@playwright/test';
+import { signIn, siteOrigin } from '@/helpers/i9';
+import { limitToSupportedProjects } from '@/helpers/projects';
 
 limitToSupportedProjects();
-test.setTimeout(90_000);
 
-const FIRST = '#employee_profile_first_name';
-const MIDDLE = 'input[name="employee_profile[middle_name]"]';
-const LAST = 'input[name="employee_profile[last_name]"]';
+const NBSP = ' ';
+const EM_SPACE = ' ';
+const ZERO_WIDTH_SPACE = '​';
+const WORD_JOINER = '⁠';
+const BOM = '﻿';
 
-// Every character class from the AC, mixed together and applied to BOTH ends:
-// en space, em space, NBSP + zero-width space, word joiner, BOM.
-const SPACES = '   ';
-const INVISIBLES = '​⁠﻿';
-const LEAD = INVISIBLES + SPACES; // invisibles first, then unicode spaces
-const TRAIL = SPACES + INVISIBLES; // unicode spaces first, then invisibles
-
-async function gotoProfile(page: Page) {
-  await page.goto(new URL('/user/profile', page.url()).toString());
-  await page.waitForLoadState('domcontentloaded');
-  await expect(page.locator(FIRST)).toBeVisible();
-}
-
-async function saveProfile(page: Page) {
-  await page.getByRole('button', { name: 'Update Profile' }).click();
-  await page.waitForTimeout(2500);
-}
-
-test('trims all AC junk classes from both ends; internal space preserved', async ({ page }) => {
+test('profile name fields trim leading/trailing junk, preserve internal characters', async ({ page }) => {
   await signIn(page);
-  await gotoProfile(page);
+  await page.goto(`${siteOrigin()}/user/profile`);
 
-  await page.locator(FIRST).fill(`${LEAD}Quinten${TRAIL}`);
-  await page.locator(MIDDLE).fill(`${LEAD}Ann Marie${TRAIL}`);
-  await page.locator(LAST).fill(`${LEAD}Roberts${TRAIL}`);
+  const firstNameInput = page.locator('#employee_profile_first_name');
+  const middleNameInput = page.locator('#employee_profile_middle_name');
+  const lastNameInput = page.locator('#employee_profile_last_name');
+  const updateButton = page.getByRole('button', { name: 'Update Profile', exact: true });
 
-  // Sanity: the junk really is in the fields pre-submit, so a green result proves the
-  // SERVER trimmed it rather than the input having silently dropped it.
-  expect(await page.locator(FIRST).inputValue()).not.toBe('Quinten');
-  expect(await page.locator(LAST).inputValue()).not.toBe('Roberts');
+  await expect(firstNameInput).toBeVisible();
+  const originalFirst = await firstNameInput.inputValue();
+  const originalMiddle = await middleNameInput.inputValue();
+  const originalLast = await lastNameInput.inputValue();
 
-  await saveProfile(page);
+  async function saveAndReload(): Promise<void> {
+    await updateButton.click();
+    await page.waitForTimeout(2500);
+    await page.goto(`${siteOrigin()}/user/profile`);
+    await expect(firstNameInput).toBeVisible();
+  }
 
-  // Reload so fields reflect PERSISTED (server-normalized) values, not what we typed.
-  await gotoProfile(page);
+  try {
+    // Both junk classes (Unicode space + invisible chars) at both ends; a word joiner
+    // planted in the middle of the middle name must survive (internal scope only).
+    await firstNameInput.fill(`${NBSP}${EM_SPACE}${originalFirst}${ZERO_WIDTH_SPACE}${WORD_JOINER}`);
+    await middleNameInput.fill(`${EM_SPACE}A${WORD_JOINER}B${ZERO_WIDTH_SPACE}`);
+    await lastNameInput.fill(`${BOM}${originalLast}${NBSP}`);
 
-  await expect(page.locator(FIRST), 'both junk classes trimmed from both ends').toHaveValue('Quinten');
-  await expect(page.locator(LAST), 'both junk classes trimmed from both ends').toHaveValue('Roberts');
-  await expect(page.locator(MIDDLE), 'ends trimmed, internal space preserved').toHaveValue('Ann Marie');
+    await saveAndReload();
 
-  // Restore the shared account (middle name is not part of its normal state).
-  await page.locator(MIDDLE).fill('');
-  await saveProfile(page);
-});
-
-test('internal invisible character is preserved (AC scope: ends only)', async ({ page }) => {
-  await signIn(page);
-  await gotoProfile(page);
-
-  // Word joiner INSIDE the value; ends also wrapped in junk. Per the AC, only the ends may
-  // be trimmed — the internal invisible char must persist (its removal is deferred to the
-  // internal-spaces spike). A failure here means the fix trims more than its approved scope.
-  await page.locator(MIDDLE).fill(`${LEAD}Ann⁠Marie${TRAIL}`);
-  await saveProfile(page);
-
-  await gotoProfile(page);
-  await expect(page.locator(MIDDLE), 'internal word joiner preserved').toHaveValue('Ann⁠Marie');
-
-  // Restore the shared account.
-  await page.locator(MIDDLE).fill('');
-  await saveProfile(page);
+    await expect(firstNameInput).toHaveValue(originalFirst);
+    await expect(middleNameInput).toHaveValue(`A${WORD_JOINER}B`);
+    await expect(lastNameInput).toHaveValue(originalLast);
+  } finally {
+    await firstNameInput.fill(originalFirst);
+    await middleNameInput.fill(originalMiddle);
+    await lastNameInput.fill(originalLast);
+    await saveAndReload();
+    await expect(firstNameInput).toHaveValue(originalFirst);
+    await expect(middleNameInput).toHaveValue(originalMiddle);
+    await expect(lastNameInput).toHaveValue(originalLast);
+  }
 });

@@ -75,16 +75,27 @@ export async function enterPassportDetails(page: Page): Promise<void> {
 }
 
 export async function signForm(page: Page): Promise<void> {
-  // Draw a stroke relative to the canvas size. The old fixed position (x: 511) falls
-  // outside the canvas on mobile viewports, where the pad is narrower than 511px.
+  // Draw a segmented stroke relative to the canvas size, mirroring drawSignature in
+  // i9-flow.ts. Relative coordinates: a fixed position falls outside the canvas on
+  // mobile viewports. Segmented moves: a single long mouse.move emits too few pointer
+  // events for the pad to register in containerized headless runs (see
+  // agent-docs/fragile-spots.md, 2026-07-30).
   const canvas = page.locator('canvas');
   await canvas.waitFor({ state: 'visible' });
   await canvas.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
   const b = await canvas.boundingBox();
   if (!b) throw new Error('signature canvas not found / not visible');
-  await page.mouse.move(b.x + b.width * 0.25, b.y + b.height * 0.5);
+  await page.mouse.move(b.x + b.width * 0.2, b.y + b.height * 0.5);
   await page.mouse.down();
-  await page.mouse.move(b.x + b.width * 0.75, b.y + b.height * 0.6, { steps: 10 });
+  for (let i = 1; i <= 20; i++) {
+    await page.mouse.move(
+      b.x + b.width * (0.2 + 0.6 * i / 20),
+      b.y + b.height * (0.5 + 0.25 * Math.sin(i / 2)),
+      { steps: 2 },
+    );
+  }
   await page.mouse.up();
+  await page.waitForTimeout(300);
 }
 

@@ -9,6 +9,8 @@ diff on the host.
 Key files:
 - Master index: `qa-manifest.yml` (repo root) — one entry per Asana task GID.
 - Workflow conventions: `.claude/skills/qa-gen/SKILL.md`.
+- Knowledge base: `CLAUDE.md` plus `agent-docs/` (navigation, patterns, fragile-spots,
+  expected-noise, evidence standard). Consult these before deriving selectors or debugging.
 - Reference spec: `tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts`.
 
 ## Target selection (env vars)
@@ -52,18 +54,27 @@ exactly that — do not guess task contents.
      `page.content()` for the target page. There is no interactive browser in this container —
      never invent selectors you have not confirmed.
    - Write `tests/qa/asana-<gid>-<slug>.spec.ts`: header comment with Asana URL + GID + task
-     name + the acceptance criteria being verified + the run command; chromium only with a
-     `test.skip` guard for other projects (single shared QA account); assert approved behavior
-     literally; restore any data the test changes.
-   - Add the manifest entry: GID, name, asana_url, gate, spec, run, generated_on, status, notes.
-4. Run each new spec: `npx playwright test <spec> --project=chromium --workers=1`.
+     name + the acceptance criteria being verified + the run commands (desktop and mobile);
+     guard by calling `limitToSupportedProjects()` from `helpers/projects.ts` (allows
+     chromium, mobile-chrome, mobile-safari; single shared QA account); prefer selectors
+     that hold on both desktop and mobile layouts; assert approved behavior literally;
+     restore any data the test changes.
+   - Add the manifest entry: GID, name, asana_url, gate, spec, run, run_mobile,
+     generated_on, status, notes.
+4. Run each new spec on desktop, then mobile:
+   `npx playwright test <spec> --project=chromium --workers=1`, then
+   `npx playwright test <spec> --project=mobile-chrome --project=mobile-safari --workers=1`.
    - Failing spec for a fix not yet deployed to QA is EXPECTED: record `status: red-until-deployed`
      and do not weaken assertions.
-   - Green: record `status: green` with `verified_on`.
+   - Green: record `status: green` with `verified_on`; record `mobile_status` and
+     `mobile_verified_on` from the mobile run.
+   - A mobile-only failure is a real finding: record it in the manifest (`mobile_status: red`
+     plus notes), never loosen the spec to hide it.
    - QA unreachable: say so; never claim a result you did not observe.
 5. Final output: a report listing (a) tasks found in the target set, (b) already covered,
-   (c) per new task: gate decision (acted / skipped + reason), spec file, run result
-   (green / red-until-deployed / QA failure). If there are no new tasks, output "No new QA tasks".
+   (c) per new task: gate decision (acted / skipped + reason), spec file, and the desktop
+   and mobile run results (green / red-until-deployed / QA failure). If there are no new
+   tasks, output "No new QA tasks".
 
 ## Hard constraints
 
@@ -75,4 +86,5 @@ exactly that — do not guess task contents.
 - Modify files only under `/work`; specs only under `tests/qa/`; plus `qa-manifest.yml`.
 - No `git commit`, no `git push`, no branch changes.
 - Do not post anything to Asana (read-only API use).
-- Chromium only, `--workers=1`, never parallelize against the shared QA account.
+- Supported projects only (`chromium`, `mobile-chrome`, `mobile-safari`), always
+  `--workers=1`, never parallelize against the shared QA account.
