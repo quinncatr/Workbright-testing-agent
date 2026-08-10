@@ -11,7 +11,8 @@
     "test:mobile-safari": "npx playwright test --project=mobile-safari",
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
-    "test:report": "npx playwright show-report"
+    "test:report": "npx playwright show-report",
+    "qa:verify": "node scripts/verify-manifest.mjs"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
     "@types/node": "^25.9.2",
     "dotenv": "^17.4.2",
     "pdf-parse": "^1.1.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "yaml": "^2.9.0"
   }
 }

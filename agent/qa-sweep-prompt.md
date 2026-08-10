@@ -51,8 +51,10 @@ exactly that — do not guess task contents.
      the acceptance criteria. Prefer asserting persisted state after a reload over transient UI.
    - Ground selectors in reality: reuse `helpers/` (e.g. `signIn` from `helpers/i9-flow`), read
      existing specs, and if needed run a short throwaway headless probe spec that dumps
-     `page.content()` for the target page. There is no interactive browser in this container —
-     never invent selectors you have not confirmed.
+     `page.content()` for the target page. Probe specs run under `--project=chromium` start
+     already signed in (storage state from `tests/auth.setup.ts`); still call `signIn(page)` —
+     it is a fast no-op when the session is live. There is no interactive browser in this
+     container — never invent selectors you have not confirmed.
    - Write `tests/qa/asana-<gid>-<slug>.spec.ts`: header comment with Asana URL + GID + task
      name + the acceptance criteria being verified + the run commands (desktop and mobile);
      guard by calling `limitToSupportedProjects()` from `helpers/projects.ts` (allows
@@ -61,20 +63,20 @@ exactly that — do not guess task contents.
      restore any data the test changes.
    - Add the manifest entry: GID, name, asana_url, gate, spec, run, run_mobile,
      generated_on, status, notes.
-4. Run each new spec on desktop, then mobile:
-   `npx playwright test <spec> --project=chromium --workers=1`, then
-   `npx playwright test <spec> --project=mobile-chrome --project=mobile-safari --workers=1`.
-   - Failing spec for a fix not yet deployed to QA is EXPECTED: record `status: red-until-deployed`
-     and do not weaken assertions.
-   - Green: record `status: green` with `verified_on`; record `mobile_status` and
-     `mobile_verified_on` from the mobile run.
-   - A mobile-only failure is a real finding: record it in the manifest (`mobile_status: red`
-     plus notes), never loosen the spec to hide it.
+4. Run each new spec on desktop chromium ONLY:
+   `npx playwright test <spec> --project=chromium --workers=1`.
+   Do NOT run the mobile projects in this container — the desktop+mobile matrix is verified
+   mechanically outside the agent by `npm run qa:verify` (`scripts/verify-manifest.mjs`),
+   which also flips red-until-deployed entries to green after the fix ships.
+   - Green: record `status: green` with `verified_on`, and `mobile_status: pending`.
+   - Failing spec for a fix not yet deployed to QA is EXPECTED: record
+     `status: red-until-deployed` and `mobile_status: pending`; do not weaken assertions.
    - QA unreachable: say so; never claim a result you did not observe.
 5. Final output: a report listing (a) tasks found in the target set, (b) already covered,
    (c) per new task: gate decision (acted / skipped + reason), spec file, and the desktop
-   and mobile run results (green / red-until-deployed / QA failure). If there are no new
-   tasks, output "No new QA tasks".
+   run result (green / red-until-deployed / QA failure) — note that mobile verification is
+   pending `npm run qa:verify` on the host. If there are no new tasks, output
+   "No new QA tasks".
 
 ## Hard constraints
 

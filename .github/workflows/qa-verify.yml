@@ -1,0 +1,46 @@
+# Mechanical verification of every spec in qa-manifest.yml (no LLM): desktop chromium
+# first, mobile only when desktop is green. Does NOT commit — the updated manifest is
+# uploaded as an artifact and shown as a diff in the job log; a human reviews and commits.
+#
+# Manual trigger only for now: the suite drives the single shared QA account, so an
+# unattended schedule could collide with local runs. Enable the cron block once that
+# is acceptable (or once dedicated agent accounts exist).
+name: QA manifest verification
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 6 * * *'   # nightly, 06:00 UTC
+jobs:
+  verify:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Install Playwright browsers
+      # chromium covers desktop + mobile-chrome; webkit covers mobile-safari
+      run: npx playwright install --with-deps chromium webkit
+    - name: Verify manifest specs (desktop, then mobile)
+      run: npm run qa:verify
+      env:
+        DOMAIN: ${{ secrets.DOMAIN }}
+        EMAIL: ${{ secrets.EMAIL }}
+        PASSWORD: ${{ secrets.PASSWORD }}
+        CF_BYPASS_TOKEN: ${{ secrets.CF_BYPASS_TOKEN }}
+    - name: Show manifest changes
+      if: ${{ !cancelled() }}
+      run: git diff qa-manifest.yml
+    - name: Upload updated manifest and reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: qa-verify-results
+        path: |
+          qa-manifest.yml
+          playwright-report/
+          test-results/
+        retention-days: 30

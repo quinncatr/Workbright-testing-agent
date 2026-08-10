@@ -68,16 +68,22 @@ discovery against QA is preferred. Reference spec:
 7. **Update `qa-manifest.yml`**: GID, name, Asana URL, `gate:`, `spec:`, `run:`,
    `run_mobile:`, `generated_on:`, `status:` (per project if they differ), `notes:`.
 
-8. **Run the spec** on desktop and mobile:
-   `npx playwright test <spec> --project=chromium --workers=1`, then
-   `npx playwright test <spec> --project=mobile-chrome --project=mobile-safari --workers=1`.
-   Report each result honestly: green = change verified on QA; red on an undeployed fix =
-   expected; red on a deployed fix = QA failure, flag it. A mobile-only failure is a real
-   finding — record it in the manifest, don't loosen the spec to hide it. If QA is
-   unreachable, say so — never claim a result you didn't observe. When the run is the
-   basis for a sign-off (marking the manifest verified/green on a deployed fix, or posting
-   results to Asana), produce the tier-2 audit trail from `agent-docs/evidence.md`: rerun
-   the passing spec with `--trace on` and write the step-by-step walkthrough.
+8. **Run the spec on desktop chromium** while iterating:
+   `npx playwright test <spec> --project=chromium --workers=1`.
+   Report the result honestly: green = change verified on QA; red on an undeployed fix =
+   expected — record `status: red-until-deployed` and `mobile_status: pending`, and do NOT
+   run the mobile projects (they would fail on the same undeployed fix and just burn
+   timeouts; `npm run qa:verify` flips the entry when the fix ships); red on a deployed
+   fix = QA failure, flag it. If QA is unreachable, say so — never claim a result you
+   didn't observe.
+   When the desktop run is green, stamp the full matrix mechanically:
+   `npm run qa:verify -- --gid <gid>` re-runs chromium plus mobile-chrome/mobile-safari
+   and updates `status`/`mobile_status` and the dates in the manifest. A mobile-only
+   failure there is a real finding — investigate and record it in the manifest, don't
+   loosen the spec to hide it. When the run is the basis for a sign-off (marking the
+   manifest verified/green on a deployed fix, or posting results to Asana), produce the
+   tier-2 audit trail from `agent-docs/evidence.md`: rerun the passing spec with
+   `--trace on` and write the step-by-step walkthrough.
 
 9. **Report.** Gate decision, what the spec drives and asserts, run output, manifest entry.
    Offer (do not do automatically): commit on branch `qa/asana-<gid>`, post results to the
