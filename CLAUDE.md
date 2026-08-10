@@ -39,6 +39,9 @@ section outgrows a few lines, move it into `agent-docs/` and leave a link here.
 - `agent-docs/evidence.md`: when a cheap check is enough and when to produce a full audit
   trail. Decide the tier before starting, not mid-task.
 - `.claude/skills/qa-gen/SKILL.md`: the QA test generation workflow for Asana tasks.
+- `scripts/verify-manifest.mjs` (`npm run qa:verify`): mechanical desktop+mobile matrix
+  verification for every spec in `qa-manifest.yml`; stamps statuses and dates. Agents
+  validate new specs on chromium only and leave the matrix to this script.
 
 ## Closing out any browser task
 

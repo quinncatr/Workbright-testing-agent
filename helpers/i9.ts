@@ -19,9 +19,15 @@ export async function signIn(page: Page): Promise<void> {
 
   await page.goto(`${siteOrigin()}/users/sign_in`);
 
-  await page.getByRole('textbox', { name: 'Email' }).fill(email);
-  await page.getByRole('textbox', { name: 'Password' }).fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  // Supported projects start already authenticated via the storage state saved by
+  // tests/auth.setup.ts, and the app redirects an authenticated session away from
+  // the sign-in page. Only fill the form when we actually landed on it (no saved
+  // state yet, or the session expired mid-run).
+  if (page.url().includes('/users/sign_in')) {
+    await page.getByRole('textbox', { name: 'Email' }).fill(email);
+    await page.getByRole('textbox', { name: 'Password' }).fill(password);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+  }
 
   await expect(
     page.getByRole('link', { name: 'View/Change' })

@@ -41,7 +41,11 @@ if [ ! -x node_modules/.bin/playwright ]; then
   npm ci --no-audit --no-fund
 fi
 
-PROMPT="$(cat /agent/qa-sweep-prompt.md)"
+# Prefer the repo-mounted prompt so edits take effect without an image rebuild;
+# the baked copy is the fallback for runs without the volume mount.
+PROMPT_FILE=/agent/qa-sweep-prompt.md
+[ -s /work/agent/qa-sweep-prompt.md ] && PROMPT_FILE=/work/agent/qa-sweep-prompt.md
+PROMPT="$(cat "$PROMPT_FILE")"
 if [ -n "$1" ]; then
   PROMPT="$PROMPT
 

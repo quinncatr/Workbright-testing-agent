@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'node:path';
+import { AUTH_FILE } from './helpers/projects';
 dotenv.config({
   path: path.resolve(__dirname, '.env'),
   quiet: true,
@@ -49,9 +50,22 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    /*
+     * Signs in once per invocation (tests/auth.setup.ts) and saves the session to
+     * AUTH_FILE. The supported projects below depend on it and load that storage
+     * state, so individual tests skip the login form entirely; signIn() in
+     * helpers/i9.ts stays callable as a fast already-signed-in check.
+     */
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
+      dependencies: ['setup'],
     },
 
     {
@@ -71,11 +85,13 @@ export default defineConfig({
      */
     {
       name: 'mobile-chrome',
-      use: { ...devices['Pixel 7'] },
+      use: { ...devices['Pixel 7'], storageState: AUTH_FILE },
+      dependencies: ['setup'],
     },
     {
       name: 'mobile-safari',
-      use: { ...devices['iPhone 15'] },
+      use: { ...devices['iPhone 15'], storageState: AUTH_FILE },
+      dependencies: ['setup'],
     },
 
     /* Test against branded browsers. */

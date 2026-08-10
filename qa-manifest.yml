@@ -3,61 +3,10 @@
 # entry: either a Playwright spec (gate: visible-change) or a recorded skip (gate: skipped).
 # The agent only acts on tasks whose change is user-observable in the browser on the QA env.
 # Updated by the /qa-gen skill (.claude/skills/qa-gen/SKILL.md). Rails-App is never modified.
-# Specs run on desktop (chromium) and mobile emulation (mobile-chrome = Pixel 7,
-# mobile-safari = iPhone 15); entries record run/status per surface via run_mobile,
-# mobile_status, and mobile_verified_on.
+# Agents validate new specs on desktop (chromium) only; the full matrix (chromium +
+# mobile-chrome = Pixel 7 + mobile-safari = iPhone 15) is verified mechanically by
+# `npm run qa:verify` (scripts/verify-manifest.mjs), which stamps status/verified_on and
+# mobile_status/mobile_verified_on. New entries carry `mobile_status: pending` until that
+# runs; while desktop is red-until-deployed, mobile runs are skipped on purpose.
 tasks:
-  "1216798217670813":
-    name: "Test Agent: Trim special whitespace from selected attributes"
-    asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216798217670813"
-    board: "I9 End to End Testing (1215576041936942), 'Test' tag sweep"
-    gate: visible-change
-    spec: tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
-    run: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=chromium --workers=1"
-    run_mobile: "npx playwright test tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts --project=mobile-chrome --project=mobile-safari --workers=1"
-    generated_on: 2026-07-30
-    status: green
-    verified_on: 2026-07-30
-    mobile_status: green
-    mobile_verified_on: 2026-07-30
-    notes: >-
-      AC scope: names normalized by trimming leading/trailing Unicode whitespace (NBSP, em
-      space) and invisible characters (zero-width space, word joiner, BOM) from the
-      first/middle/last name fields on the profile page; internal characters (a planted word
-      joiner) are intentionally preserved per the AC's stated "ends only" scope. Spec edits
-      the shared account's profile fields, saves, reloads, and asserts trimmed/preserved
-      values, then restores the original values (captured at test start) in a finally block.
-      Passed on chromium, mobile-chrome, and mobile-safari on first run.
-
-  "1216925412790266":
-    name: "I-9: Fix v8 2026 PDF dropping accented letters"
-    asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/task/1216925412790266"
-    board: "I9 End to End Testing (1215576041936942), 'Test' tag sweep"
-    gate: visible-change
-    spec: tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
-    run: "npx playwright test tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts --project=chromium --workers=1"
-    run_mobile: "npx playwright test tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts --project=mobile-chrome --project=mobile-safari --workers=1"
-    generated_on: 2026-07-30
-    status: green
-    verified_on: 2026-07-30
-    mobile_status: green
-    mobile_verified_on: 2026-07-30
-    notes: >-
-      AC scope acted on: accented names must render correctly on the flattened I-9 PDF (the
-      other AC items — regression test/rake task in Rails-App, golden-PDF fixture in CI, W-4/W-9
-      template audit, re-generation of already-rendered PDFs — have no UI surface on this
-      account and are not asserted here). The shared account's profile first name is not
-      accented by default, so the spec temporarily sets it to "Óscar", completes a real I-9
-      resubmission (citizen / U.S. Passport), downloads the resulting flattened PDF via the
-      submission page's "file" link (/api/submissions/<id>/file?download=1), asserts the
-      extracted PDF text (pdf-parse) contains "Óscar" intact and not dropped to bare "scar",
-      then restores the original profile first name in a finally block. Passed on first run on
-      chromium, mobile-chrome, and mobile-safari — each run creates one new I-9 resubmission on
-      the shared account (expected/idempotent, consistent with other I-9 specs in this repo).
-      Two harmless 422 responses to POST /i9_submission were observed mid-flow before the final
-      successful submission (looks like an autosave/partial-validation ping, not the real
-      Finish submit — did not block completion on any of the 3 runs). Also: helpers/i9.ts's
-      `signForm` did not reliably register a signature stroke in this container (confirmed via
-      screenshot — empty canvas, submission blocked on "Please sign this form"); this spec uses
-      `signEmployee`/`drawSignature` from helpers/i9-flow.ts instead, which worked on the first
-      try on all 3 projects. Worth a human look at whether `signForm` needs the same fix.
+  

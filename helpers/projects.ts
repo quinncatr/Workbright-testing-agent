@@ -1,4 +1,12 @@
 import { test } from '@playwright/test';
+import path from 'node:path';
+
+/**
+ * Storage state saved by tests/auth.setup.ts (the `setup` project) and reused by every
+ * supported project, so specs start already signed in. Gitignored; recreated on every
+ * run. Lives here so playwright.config.ts and auth.setup.ts share one path.
+ */
+export const AUTH_FILE = path.resolve(__dirname, '..', 'playwright', '.auth', 'qa-user.json');
 
 /**
  * Projects allowed to drive the single shared QA account. Desktop chromium plus the

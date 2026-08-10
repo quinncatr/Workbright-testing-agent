@@ -51,6 +51,12 @@ npm test
 | `npm run test:headed` | Watch the browser while it runs |
 | `npm run test:debug` | Playwright inspector (step through) |
 | `npm run test:report` | Open the HTML report from the last run |
+| `npm run qa:verify` | Run every manifest spec (desktop, then mobile) and stamp results into `qa-manifest.yml` |
+
+Every run starts with a `setup` project ([tests/auth.setup.ts](tests/auth.setup.ts)) that
+signs in once and saves the session to `playwright/.auth/` (gitignored). The supported
+projects reuse that storage state, so individual tests skip the login form; `signIn`
+detects the live session and falls back to the form only if it expired.
 
 Useful variations:
 
@@ -88,6 +94,11 @@ The agent behaves like a QA engineer: for each Asana task in the target board it
 browser on QA get a spec; everything else (back-end-only, email/SMS content, spikes) is
 recorded in the manifest as a skip with the reason. It never commits or pushes: all output
 lands in your working tree for review.
+
+The agent validates each new spec on desktop chromium only and records
+`mobile_status: pending`; the full desktop+mobile matrix is a mechanical job that needs
+no LLM — see "Verifying the manifest" below. This keeps agent runs (and token usage)
+short: the expensive part of a sweep was running every spec on three browser projects.
 
 Prerequisites: [Docker](https://docs.docker.com/get-docker/), plus two more `.env` values:
 
@@ -147,7 +158,44 @@ QA_PROJECT_GID=1215576041936942 QA_TAG_NAME=Test docker compose -f docker-compos
 3. A **red** result is not automatically a bug in the spec: if the fix isn't deployed to QA
    yet, the manifest marks it `red-until-deployed` — the spec should go green when the fix
    ships. Red on a deployed fix is a real finding.
-4. Commit what you accept.
+4. New entries have `mobile_status: pending` — run `npm run qa:verify` to execute the
+   desktop+mobile matrix and stamp the results.
+5. Commit what you accept.
+
+### Verifying the manifest (no agent)
+
+`npm run qa:verify` ([scripts/verify-manifest.mjs](scripts/verify-manifest.mjs)) runs every
+spec recorded in `qa-manifest.yml` and updates the status fields in place. It needs only
+Node and the QA credentials — no Claude, no Docker. Use it to stamp pending mobile
+results, to re-check `red-until-deployed` entries after a deploy, and as a regression
+sweep over everything that was green.
+
+```
+npm run qa:verify                      # all specs
+npm run qa:verify -- --gid <gid>       # one task (comma-separate for several)
+npm run qa:verify -- --desktop-only    # skip the mobile projects
+```
+
+Windows PowerShell strips the `--` separator, which makes npm swallow the flags. There,
+either pass bare GIDs (`npm run qa:verify 123456`) or call the script directly:
+
+```bash
+node scripts/verify-manifest.mjs --gid <gid> --desktop-only
+```
+
+Per spec it runs chromium first and only runs the mobile projects when desktop passes
+(a spec that is red because the fix isn't deployed would fail identically on mobile and
+just burn the timeouts twice more). Status rules: desktop pass → `green` + `verified_on`;
+desktop fail on a `red-until-deployed` entry → left unchanged; desktop fail on anything
+else → `red` (a regression if it was green); mobile pass/fail → `mobile_status` +
+`mobile_verified_on`. Exit code is non-zero if anything regressed or failed on mobile.
+Failed runs keep Playwright traces under `test-results/verify-<gid>-*`.
+
+There is also a manual GitHub Actions workflow
+([.github/workflows/qa-verify.yml](.github/workflows/qa-verify.yml)) that runs the same
+script and uploads the updated manifest and reports as artifacts. It is
+`workflow_dispatch` only for now — an unattended schedule could collide with local runs
+on the single shared QA account.
 
 ## Environment variables reference
 
