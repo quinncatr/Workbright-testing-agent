@@ -8,5 +8,78 @@
 # `npm run qa:verify` (scripts/verify-manifest.mjs), which stamps status/verified_on and
 # mobile_status/mobile_verified_on. New entries carry `mobile_status: pending` until that
 # runs; while desktop is red-until-deployed, mobile runs are skipped on purpose.
+# Production: `npm run qa:verify -- --prod` runs entries against the production site
+# (PROD_* creds in .env), chromium only, stamping prod_status/prod_verified_on — but ONLY
+# entries a human marked `prod: allowed`. Specs mutate account data, so review what each
+# one touches before allowing it; `prod: never` (with prod_notes saying why) is the
+# default for anything that creates durable records. Agents never set prod: allowed.
 tasks:
-  
+  "1216798217670813":
+    name: "Test Agent: Trim special whitespace from selected attributes"
+    asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/t\
+      ask/1216798217670813"
+    gate: visible-change
+    spec: tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
+    run: "npx playwright test
+      tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
+      --project=chromium --workers=1"
+    run_mobile: "npx playwright test
+      tests/qa/asana-1216798217670813-name-whitespace-trim.spec.ts
+      --project=mobile-chrome --project=mobile-safari --workers=1"
+    generated_on: 2026-08-10
+    status: green
+    verified_on: 2026-08-10
+    mobile_status: pending
+    prod: allowed
+    prod_notes: >-
+      Edits profile name fields and restores the originals in a finally block;
+      creates no durable records. Reviewed 2026-08-10 — needs a dedicated prod
+      test account.
+    notes: >-
+      AC scope: names normalized by trimming leading/trailing Unicode whitespace
+      (NBSP, em space) and invisible characters (zero-width space, word joiner,
+      BOM) from the first/middle/last name fields on the profile page; internal
+      characters (a planted word joiner) are intentionally preserved per the
+      AC's stated "ends only" scope. Spec edits the shared account's profile
+      fields, saves, reloads, and asserts trimmed/preserved values, then
+      restores the original values (captured at test start) in a finally block.
+      Passed on chromium on first run; mobile verification pending npm run
+      qa:verify.
+
+  "1216925412790266":
+    name: "I-9: Fix v8 2026 PDF dropping accented letters"
+    asana_url: "https://app.asana.com/1/1110661684743291/project/1215576041936942/t\
+      ask/1216925412790266"
+    gate: visible-change
+    spec: tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
+    run: "npx playwright test
+      tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
+      --project=chromium --workers=1"
+    run_mobile: "npx playwright test
+      tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
+      --project=mobile-chrome --project=mobile-safari --workers=1"
+    generated_on: 2026-08-10
+    status: green
+    verified_on: 2026-08-10
+    mobile_status: pending
+    prod: never
+    prod_notes: >-
+      Completes a real I-9 resubmission: creates a durable submission record on
+      the account and may trigger admin notifications or downstream compliance
+      workflows (E-Verify). Do not run against production without an account
+      explicitly provisioned for that.
+    notes: >-
+      AC scope acted on: accented names must render correctly on the flattened
+      I-9 PDF (the other AC items — regression test/rake task in Rails-App,
+      golden-PDF fixture in CI, W-4/W-9 template audit, re-generation of
+      already-rendered PDFs — have no UI surface on this account and are not
+      asserted here). The shared account's profile first name is not accented by
+      default, so the spec temporarily sets it to "Óscar", completes a real I-9
+      resubmission (citizen / U.S. Passport), downloads the resulting flattened
+      PDF via the submission page's "file" link (/file?download=1), asserts the
+      extracted PDF text (pdf-parse) contains "Óscar" intact and not dropped to
+      bare "scar", then restores the original profile first name in a finally
+      block. Passed on chromium on first run; each run creates one new I-9
+      resubmission on the shared account (expected/idempotent, consistent with
+      other I-9 specs in this repo). Mobile verification pending npm run
+      qa:verify.

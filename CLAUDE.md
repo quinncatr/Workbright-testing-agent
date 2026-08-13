@@ -26,6 +26,12 @@ section outgrows a few lines, move it into `agent-docs/` and leave a link here.
   specs for a runnable version of the flow, and run that instead. If you catch yourself
   hand-driving the same look-then-click sequence a third time, stop and encode it as a
   helper or a spec.
+- Production is human-gated. Specs can run against prod only via
+  `npm run qa:verify -- --prod`, and only for manifest entries a human marked
+  `prod: allowed`. Never set `prod: allowed` yourself, and never drive the production
+  site (WB_TARGET=prod or otherwise) unless the user explicitly asks in the current
+  session. New manifest entries get `prod: never` with a `prod_notes:` explaining what
+  the spec mutates.
 
 ## Where everything else lives
 

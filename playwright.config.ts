@@ -1,17 +1,64 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { AUTH_FILE } from './helpers/projects';
+import { AUTH_FILE, TARGET } from './helpers/projects';
 dotenv.config({
   path: path.resolve(__dirname, '.env'),
   quiet: true,
 });
+
+/*
+ * Target selection. WB_TARGET=prod points the whole run at production: helpers read
+ * DOMAIN/EMAIL/PASSWORD at runtime, so swapping them here (after dotenv) retargets
+ * every spec and the auth setup without touching any test code. Guardrails:
+ *  - Missing PROD_* credentials fail loudly instead of silently running against QA.
+ *  - In prod mode only spec files listed in WB_PROD_SPECS (comma-separated, set per
+ *    entry by `scripts/verify-manifest.mjs --prod`) are matched, plus the auth setup.
+ *    With an empty allowlist nothing runs — a stray `WB_TARGET=prod npx playwright
+ *    test` cannot drive the full suite (I-9 submissions and all) against production.
+ */
+if (TARGET === 'prod') {
+  for (const [from, to] of [
+    ['PROD_DOMAIN', 'DOMAIN'],
+    ['PROD_EMAIL', 'EMAIL'],
+    ['PROD_PASSWORD', 'PASSWORD'],
+  ] as const) {
+    if (!process.env[from]) {
+      throw new Error(`WB_TARGET=prod requires ${from} in .env (see .env.example). Refusing to fall back to QA credentials.`);
+    }
+    process.env[to] = process.env[from];
+  }
+  // CF_BYPASS_TOKEN is shared across targets: prod runs send the same bypass header,
+  // so production's WAF skip rule must match the one token.
+} else if (TARGET !== 'qa') {
+  throw new Error(`Unknown WB_TARGET "${process.env.WB_TARGET}" (expected "qa" or "prod")`);
+}
+
+const PROD_SPEC_ALLOWLIST = (process.env.WB_PROD_SPECS ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
   testDir: './tests',
+  /*
+   * Prod safety gate: in prod mode the non-setup projects match only the explicit
+   * allowlist; an empty allowlist matches nothing, so the run does nothing. The
+   * `setup` project keeps its own testMatch (project-level overrides top-level), so
+   * authentication still runs as a dependency.
+   */
+  ...(TARGET === 'prod'
+    ? {
+        // Full repo-relative paths (forward slashes), not basenames, so an unrelated
+        // file that happens to share a name can never ride along onto prod.
+        testMatch: PROD_SPEC_ALLOWLIST.length
+          ? PROD_SPEC_ALLOWLIST.map((s) => `**/${s.replace(/\\/g, '/')}`)
+          : ['**/__prod-allowlist-empty__.spec.ts'],
+      }
+    : {}),
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

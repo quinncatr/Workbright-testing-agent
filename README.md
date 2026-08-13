@@ -6,11 +6,39 @@ turns Asana tasks into regression specs automatically.
 Two ways to use this repo:
 
 1. **Run the test suite** — Playwright specs that drive the QA site (I-9 flows, profile,
-   QA regression specs). Needs Node + the QA test account.
+   QA regression specs). Needs Node + the QA test account. Specs marked `prod: allowed`
+   can also re-verify against production (see "Running manifest specs against production").
 2. **Run the QA agent** — a containerized Claude agent that reads Asana tasks moved to QA,
    decides whether the change is verifiable in the browser, writes a Playwright spec for it,
    runs it against QA, and records everything in [`qa-manifest.yml`](qa-manifest.yml).
    Needs Docker + API credentials.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+    A["Asana task<br/>moved to QA"] --> B["QA agent<br/>(Docker + Claude)"]
+    B -->|"visible-change gate: spec"| C["tests/qa/*.spec.ts"]
+    B -->|"or recorded skip + reason"| D["qa-manifest.yml"]
+    C --> D
+    D --> E["npm run qa:verify<br/>(desktop + mobile matrix)"]
+    E -->|"stamps status fields"| D
+    E -->|"prod: allowed entries only"| F["Production<br/>(--prod, three gates)"]
+```
+
+Lifecycle of one task:
+
+1. A ticket moves to the QA section in Asana.
+2. The agent applies the visible-change gate: it writes a Playwright spec if the change
+   is observable in the browser, otherwise it records a skip with the reason. Either way
+   the task gets a manifest entry — the manifest is the system of record.
+3. The agent validates its spec on desktop chromium only: `green`, or
+   `red-until-deployed` when the fix has not reached QA yet. Mobile stays `pending`.
+4. `npm run qa:verify` (no LLM) runs the desktop+mobile matrix, stamps statuses and
+   dates, flips `red-until-deployed` entries green after the fix deploys, and flags any
+   green spec that turns red as a regression.
+5. A human reviews the diff, commits, and may mark an entry `prod: allowed`.
+6. `npm run qa:verify -- --prod` re-verifies allowed specs against production.
 
 ## Quick start (test suite)
 
@@ -82,6 +110,7 @@ to leave the account the way they found it.
 | `tests/` | Playwright specs (`tests/qa/` = generated Asana regression specs, named `asana-<gid>-<slug>.spec.ts`) |
 | `helpers/` | Shared flow code: `signIn`, I-9 wizard steps, `limitToSupportedProjects()` |
 | `qa-manifest.yml` | Master index: every Asana QA task → spec + result, or a recorded skip with reason |
+| `scripts/` | `verify-manifest.mjs` — mechanical matrix verification + manifest stamping (`npm run qa:verify`) |
 | `agent/` | The containerized QA agent (Dockerfile, entrypoint, sweep prompt) |
 | `agent-docs/` | The agent's knowledge base: navigation, per-area driving patterns, known fragile spots, expected console noise, evidence tiers |
 | `CLAUDE.md` | Rules loaded by Claude Code at session start (shared-account etiquette, write-back requirements) |
@@ -196,6 +225,52 @@ There is also a manual GitHub Actions workflow
 script and uploads the updated manifest and reports as artifacts. It is
 `workflow_dispatch` only for now — an unattended schedule could collide with local runs
 on the single shared QA account.
+
+### Running manifest specs against production
+
+```
+npm run qa:verify -- --prod
+```
+
+Same script, pointed at the production site. Because these specs sign in and modify
+account data, production runs are locked down in three independent ways:
+
+1. **Credentials**: requires `PROD_DOMAIN` / `PROD_EMAIL` / `PROD_PASSWORD` in `.env`
+   (see `.env.example`). Use a dedicated production test account, never a real
+   employee's. Leave them empty and production runs are impossible.
+2. **Per-spec opt-in**: only manifest entries a human marked `prod: allowed` run;
+   everything else is skipped and listed. Each entry's `prod_notes:` records what the
+   spec mutates. The agent always writes `prod: never` on new entries — flipping one to
+   `allowed` is deliberately a human edit. (Example: the I-9 PDF spec is `prod: never`
+   because it creates a real I-9 submission.)
+3. **Config-level allowlist**: in prod mode `playwright.config.ts` only matches spec
+   files explicitly listed in `WB_PROD_SPECS` (the verify script sets it per spec), so
+   even a stray `WB_TARGET=prod npx playwright test` runs nothing instead of driving
+   the whole suite at production.
+
+Prod runs are chromium-only and stamp `prod_status` / `prod_verified_on` in the
+manifest (QA fields are untouched). A failure on an entry that was never green on prod
+is recorded as `red-until-deployed` — usually the fix just hasn't been released yet;
+confirm against the release before reading it as a bug. A failure on an entry that was
+green on prod is a production regression and exits non-zero.
+
+For a first run against a new production test account, start with the read-only smoke
+spec [tests/employee/i9/i9-reachable.spec.ts](tests/employee/i9/i9-reachable.spec.ts) —
+it signs in and verifies the I-9 flow is reachable without creating or modifying
+anything.
+
+To run a single allowed spec by hand:
+
+```bash
+WB_TARGET=prod WB_PROD_SPECS=tests/qa/<spec>.spec.ts npx playwright test tests/qa/<spec>.spec.ts --project=chromium --workers=1
+```
+
+(PowerShell: `$env:WB_TARGET='prod'; $env:WB_PROD_SPECS='tests/qa/<spec>.spec.ts'` first,
+and remember to unset them afterward: `Remove-Item Env:WB_TARGET, Env:WB_PROD_SPECS`.)
+
+Note: prod runs send the same `CF_BYPASS_TOKEN` header as QA runs. If production's
+Cloudflare WAF challenges the run (a "verify you are human" page in the failure
+screenshot), production needs a skip rule matching that token, like the one on QA.
 
 ## Environment variables reference
 

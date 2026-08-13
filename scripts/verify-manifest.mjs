@@ -14,17 +14,29 @@
  * re-verification after deploys (flipping red-until-deployed to green).
  *
  * Usage:
- *   npm run qa:verify                       # every spec in the manifest
+ *   npm run qa:verify                       # every spec in the manifest (QA env)
  *   npm run qa:verify -- --gid 123[,456]    # only these Asana task GIDs
  *   npm run qa:verify -- --desktop-only     # skip the mobile projects
+ *   npm run qa:verify -- --prod             # PRODUCTION run (see below)
  *
- * Status rules:
+ * QA status rules:
  *   desktop pass                          -> status: green, verified_on: today
  *   desktop fail, was red-until-deployed  -> unchanged (fix still not on QA)
  *   desktop fail otherwise                -> status: red (regression if it was green)
  *   mobile pass (desktop green)           -> mobile_status: green, mobile_verified_on
  *   mobile fail (desktop green)           -> mobile_status: red (real finding)
  *   desktop not green                     -> mobile untouched, run skipped
+ *
+ * Production mode (--prod):
+ *   Runs against the production site (WB_TARGET=prod; PROD_DOMAIN/PROD_EMAIL/
+ *   PROD_PASSWORD in .env) and ONLY for entries a human marked `prod: allowed` in the
+ *   manifest — everything else is skipped and listed. Chromium only, one spec per
+ *   invocation via the WB_PROD_SPECS allowlist that playwright.config.ts enforces.
+ *   Stamps prod_status/prod_verified_on (never the QA fields):
+ *     pass                   -> prod_status: green
+ *     fail, was green        -> prod_status: red (REGRESSION on prod, exit 1)
+ *     fail otherwise         -> prod_status: red-until-deployed (fix likely not
+ *                               released yet — confirm against the release notes)
  *
  * Exit code 1 if any spec regressed, failed on mobile, or is missing; 0 otherwise
  * (red-until-deployed staying red is expected and does not fail the run).
@@ -34,13 +46,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
+import dotenv from 'dotenv';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MANIFEST = path.join(ROOT, 'qa-manifest.yml');
+dotenv.config({ path: path.join(ROOT, '.env'), quiet: true });
 
 const argv = process.argv.slice(2);
 let gidFilter = null;
 let desktopOnly = false;
+let prod = false;
 const addGids = (value) => {
   gidFilter ??= new Set();
   for (const gid of (value ?? '').split(',').filter(Boolean)) gidFilter.add(gid);
@@ -50,16 +65,27 @@ for (let i = 0; i < argv.length; i++) {
     addGids(argv[++i]);
   } else if (argv[i] === '--desktop-only') {
     desktopOnly = true;
+  } else if (argv[i] === '--prod') {
+    prod = true;
   } else if (/^\d[\d,]*$/.test(argv[i])) {
     // Bare GID(s): PowerShell 5.1 strips the `--` separator before npm sees it, which
     // makes npm swallow --flags; a plain numeric argument survives that path.
     addGids(argv[i]);
   } else {
     console.error(`Unknown argument: ${argv[i]}`);
-    console.error('Usage: npm run qa:verify -- [--gid <gid>[,<gid>...]] [--desktop-only]');
+    console.error('Usage: npm run qa:verify -- [--gid <gid>[,<gid>...]] [--desktop-only] [--prod]');
     console.error('       (PowerShell: npm eats --flags; use `node scripts/verify-manifest.mjs` directly or pass bare GIDs)');
     process.exit(2);
   }
+}
+
+if (prod) {
+  const missing = ['PROD_DOMAIN', 'PROD_EMAIL', 'PROD_PASSWORD'].filter((v) => !process.env[v]);
+  if (missing.length) {
+    console.error(`--prod requires ${missing.join(', ')} in .env (see .env.example).`);
+    process.exit(2);
+  }
+  console.log(`PRODUCTION run against ${process.env.PROD_DOMAIN} — only entries marked \`prod: allowed\` will execute (chromium only).`);
 }
 
 function runPlaywright(spec, projects, outputSuffix) {
@@ -75,6 +101,11 @@ function runPlaywright(spec, projects, outputSuffix) {
     cwd: ROOT,
     stdio: 'inherit',
     shell: process.platform === 'win32',
+    env: prod
+      // playwright.config.ts swaps in the PROD_* credentials and restricts the run to
+      // exactly this spec (WB_PROD_SPECS allowlist).
+      ? { ...process.env, WB_TARGET: 'prod', WB_PROD_SPECS: spec }
+      : process.env,
   });
   return res.status === 0;
 }
@@ -99,6 +130,33 @@ for (const [gid, entry] of Object.entries(tasks)) {
     console.error(`${gid}: manifest points at missing spec ${entry.spec}`);
     results.push({ gid, name: entry.name, desktop: 'SPEC MISSING', mobile: 'skipped' });
     failures++;
+    continue;
+  }
+
+  if (prod) {
+    // Production is opt-in per entry: a human sets `prod: allowed` after reviewing
+    // what the spec mutates. Anything else is skipped, visibly.
+    if (entry.prod !== 'allowed') {
+      console.log(`${gid}: prod: ${entry.prod ?? 'unset'} — skipped (mark \`prod: allowed\` in qa-manifest.yml to include it)`);
+      results.push({ gid, name: entry.name, desktop: `skipped on prod (prod: ${entry.prod ?? 'unset'})`, mobile: 'n/a' });
+      continue;
+    }
+    console.log(`\n=== ${gid} — ${entry.name ?? entry.spec} [PRODUCTION]`);
+    const prodPass = runPlaywright(entry.spec, ['chromium'], `${gid}-prod`);
+    let prodNote;
+    if (prodPass) {
+      doc.setIn(['tasks', gid, 'prod_status'], 'green');
+      doc.setIn(['tasks', gid, 'prod_verified_on'], today);
+      prodNote = 'green';
+    } else if (entry.prod_status === 'green') {
+      doc.setIn(['tasks', gid, 'prod_status'], 'red');
+      prodNote = 'RED — REGRESSION ON PROD (was green)';
+      failures++;
+    } else {
+      doc.setIn(['tasks', gid, 'prod_status'], 'red-until-deployed');
+      prodNote = 'red-until-deployed (confirm the fix is actually in the prod release)';
+    }
+    results.push({ gid, name: entry.name, desktop: `prod: ${prodNote}`, mobile: 'n/a' });
     continue;
   }
 

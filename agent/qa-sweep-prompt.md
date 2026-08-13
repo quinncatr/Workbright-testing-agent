@@ -90,3 +90,6 @@ exactly that — do not guess task contents.
 - Do not post anything to Asana (read-only API use).
 - Supported projects only (`chromium`, `mobile-chrome`, `mobile-safari`), always
   `--workers=1`, never parallelize against the shared QA account.
+- QA env ONLY. Never set `WB_TARGET=prod`, never touch PROD_* credentials, and record
+  `prod: never` (with `prod_notes:` describing what the spec mutates) on every manifest
+  entry you create — a human flips it to `prod: allowed` after review.

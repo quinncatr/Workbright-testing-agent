@@ -67,6 +67,9 @@ discovery against QA is preferred. Reference spec:
 
 7. **Update `qa-manifest.yml`**: GID, name, Asana URL, `gate:`, `spec:`, `run:`,
    `run_mobile:`, `generated_on:`, `status:` (per project if they differ), `notes:`.
+   Always set `prod: never` plus a `prod_notes:` describing exactly what the spec
+   mutates (records created, fields edited, notifications it might trigger) — a human
+   reviews that and flips entries to `prod: allowed`; never do it yourself.
 
 8. **Run the spec on desktop chromium** while iterating:
    `npx playwright test <spec> --project=chromium --workers=1`.

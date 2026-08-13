@@ -2,11 +2,20 @@ import { test } from '@playwright/test';
 import path from 'node:path';
 
 /**
+ * Which environment this run targets: 'qa' (default) or 'prod'. WB_TARGET must be set
+ * in the shell, not in .env — this module is imported before dotenv loads, and
+ * playwright.config.ts uses the same value to swap credentials and to restrict prod
+ * runs to an explicit spec allowlist (WB_PROD_SPECS).
+ */
+export const TARGET = (process.env.WB_TARGET ?? 'qa').toLowerCase();
+
+/**
  * Storage state saved by tests/auth.setup.ts (the `setup` project) and reused by every
  * supported project, so specs start already signed in. Gitignored; recreated on every
- * run. Lives here so playwright.config.ts and auth.setup.ts share one path.
+ * run. Keyed by target so QA and prod sessions never share a file. Lives here so
+ * playwright.config.ts and auth.setup.ts share one path.
  */
-export const AUTH_FILE = path.resolve(__dirname, '..', 'playwright', '.auth', 'qa-user.json');
+export const AUTH_FILE = path.resolve(__dirname, '..', 'playwright', '.auth', `${TARGET}-user.json`);
 
 /**
  * Projects allowed to drive the single shared QA account. Desktop chromium plus the
