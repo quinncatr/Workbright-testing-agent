@@ -5,6 +5,8 @@ import { LIST_A, LIST_B, LIST_C, PARTNER_B, PARTNER_C, firstCitizenship } from '
 
 // Every submittable document for List A and List B/C pairs
 
+//Run: npx playwright test tests\employee\i9\i9-documents.spec.ts --project=chromium --workers=1 --headed
+
 limitToSupportedProjects();
 test.setTimeout(120_000);
 

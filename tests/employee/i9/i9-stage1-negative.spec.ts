@@ -3,7 +3,7 @@ import { limitToSupportedProjects } from '@/helpers/projects';
 import { startI9, clickNext, expectSection1Rejected } from '@/helpers/i9-flow';
 
 // Section 1 error cases: 
-// Run: npx playwright test i9/i9-stage1-negative.spec.ts --project=chromium --workers=1 --headed
+// Run: npx playwright test tests\employee\i9\i9-stage1-negative.spec.ts --project=chromium --workers=1 --headed
 
 limitToSupportedProjects();
 test.setTimeout(90_000);

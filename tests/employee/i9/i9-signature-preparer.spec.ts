@@ -8,7 +8,7 @@ import {
 } from '@/helpers/i9-flow';
 import { LIST_A } from '@/helpers/i9-data';
 
-// Signature and the Preparer/Translator branch
+//npx playwright test tests\employee\i9\i9-signature-preparer.spec.ts --project=chromium --workers=1 --headed
 
 limitToSupportedProjects();
 test.setTimeout(120_000);

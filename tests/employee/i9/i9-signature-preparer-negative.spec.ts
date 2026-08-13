@@ -3,7 +3,7 @@ import { limitToSupportedProjects } from '@/helpers/projects';
 import { goToPreparerStep, fillPreparerYes, expectPreparerRejected } from '@/helpers/i9-flow';
 
 // Preparer/Translator error cases: 
-// Run: npx playwright test tests/i9-signature-preparer-negative.spec.ts --project=chromium --workers=1 --headed
+// Run: npx playwright test tests\employee\i9\i9-signature-preparer-negative.spec.ts --project=chromium --workers=1 --headed
 
 limitToSupportedProjects();
 test.setTimeout(120_000);

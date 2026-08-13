@@ -28,8 +28,8 @@ tasks:
       --project=mobile-chrome --project=mobile-safari --workers=1"
     generated_on: 2026-08-10
     status: green
-    verified_on: 2026-08-10
-    mobile_status: pending
+    verified_on: 2026-08-13
+    mobile_status: green
     prod: allowed
     prod_notes: >-
       Edits profile name fields and restores the originals in a finally block;
@@ -45,6 +45,7 @@ tasks:
       restores the original values (captured at test start) in a finally block.
       Passed on chromium on first run; mobile verification pending npm run
       qa:verify.
+    mobile_verified_on: 2026-08-13
 
   "1216925412790266":
     name: "I-9: Fix v8 2026 PDF dropping accented letters"
@@ -58,9 +59,9 @@ tasks:
     run_mobile: "npx playwright test
       tests/qa/asana-1216925412790266-i9-pdf-accented-name.spec.ts
       --project=mobile-chrome --project=mobile-safari --workers=1"
-    generated_on: 2026-08-10
+    generated_on: 2026-08-13
     status: green
-    verified_on: 2026-08-10
+    verified_on: 2026-08-13
     mobile_status: pending
     prod: never
     prod_notes: >-
@@ -83,3 +84,4 @@ tasks:
       resubmission on the shared account (expected/idempotent, consistent with
       other I-9 specs in this repo). Mobile verification pending npm run
       qa:verify.
+

@@ -13,18 +13,7 @@ Two ways to use this repo:
    runs it against QA, and records everything in [`qa-manifest.yml`](qa-manifest.yml).
    Needs Docker + API credentials.
 
-## How it fits together
-
-```mermaid
-flowchart LR
-    A["Asana task<br/>moved to QA"] --> B["QA agent<br/>(Docker + Claude)"]
-    B -->|"visible-change gate: spec"| C["tests/qa/*.spec.ts"]
-    B -->|"or recorded skip + reason"| D["qa-manifest.yml"]
-    C --> D
-    D --> E["npm run qa:verify<br/>(desktop + mobile matrix)"]
-    E -->|"stamps status fields"| D
-    E -->|"prod: allowed entries only"| F["Production<br/>(--prod, three gates)"]
-```
+## Agent Task Flow
 
 Lifecycle of one task:
 

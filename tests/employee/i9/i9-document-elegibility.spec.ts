@@ -7,7 +7,7 @@
 // helpers/i9-data.ts, so this suite iterates every citizenship × ineligible-doc
 // pair automatically.
 //
-// Run: npx playwright test tests/i9-document-eligibility.spec.ts --project=chromium --workers=1
+// Run: npx playwright test tests/employee/i9/i9-document-elegibility.spec.ts --project=chromium --workers=1 --headed
 
 import { test } from '@playwright/test';
 import { limitToSupportedProjects } from '@/helpers/projects';

@@ -6,6 +6,7 @@ import { limitToSupportedProjects } from '@/helpers/projects';
 import { startI9, selectCitizenship, goDocumentsPage } from '@/helpers/i9-flow';
 import type { AlienOption, Citizenship } from '@/helpers/i9-data';
 
+//Run: npx playwright test tests\employee\i9\i9-stage1.spec.ts --project=chromium --workers=1 --headed 
 limitToSupportedProjects();
 test.setTimeout(90_000);
 
